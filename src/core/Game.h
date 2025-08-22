@@ -25,6 +25,11 @@ private:
     sf::RenderWindow m_window;
     sf::Clock m_clock; // for delta time
     bool m_isRunning;
+    // FPS display helpers
+    std::string m_title;
+    float m_fps{0.0f};
+    float m_fpsAccumulator{0.0f};
+    int m_fpsFrames{0};
 };
 
 #endif // A2B9B8_GAME_H

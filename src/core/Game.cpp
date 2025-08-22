@@ -32,6 +32,8 @@ void Game::initWindow(unsigned int width, unsigned int height, const std::string
 
     // Set a reasonable frame limit; the user can modify later
     m_window.setFramerateLimit(60);
+    // store base title for FPS updates
+    m_title = title;
 }
 
 void Game::run()
@@ -81,9 +83,22 @@ void Game::processEvents()
 
 void Game::update(float deltaTime)
 {
-    // Placeholder for update logic; intentionally empty
-    // deltaTime can be used by game systems for animations/physics
-    (void)deltaTime;
+    // Update FPS counter and refresh title once per second
+    m_fpsAccumulator += deltaTime;
+    m_fpsFrames += 1;
+
+    if (m_fpsAccumulator >= 1.0f) {
+        m_fps = static_cast<float>(m_fpsFrames) / m_fpsAccumulator;
+        m_fpsAccumulator = 0.0f;
+        m_fpsFrames = 0;
+
+        // update title with FPS
+        try {
+            m_window.setTitle(m_title + " - FPS: " + std::to_string(static_cast<int>(m_fps + 0.5f)));
+        } catch (...) {
+            // Ignore any window title update errors
+        }
+    }
 }
 
 void Game::render()
