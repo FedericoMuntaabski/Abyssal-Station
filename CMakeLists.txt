@@ -14,7 +14,7 @@ if(DEFINED CMAKE_TOOLCHAIN_FILE)
 endif()
 
 ## Prefer the imported config targets provided by modern SFML packages (vcpkg installs SFML 3.x)
-find_package(SFML COMPONENTS Graphics Window System CONFIG REQUIRED)
+find_package(SFML COMPONENTS Graphics Window System Audio CONFIG REQUIRED)
 if(NOT SFML_FOUND)
     message(STATUS "SFML not found by CMake. If you installed SFML via vcpkg, run CMake with -DCMAKE_TOOLCHAIN_FILE=<vcpkg>/scripts/buildsystems/vcpkg.cmake")
     message(FATAL_ERROR "SFML (graphics, window, system) is required. Set SFML_DIR or use vcpkg.")
@@ -24,7 +24,8 @@ add_executable(AbyssalStation
     src/main.cpp
     src/core/Game.cpp
     src/core/Game.h
+    src/core/AssetManager.cpp
 )
 
 target_include_directories(AbyssalStation PRIVATE ${CMAKE_SOURCE_DIR}/src)
-target_link_libraries(AbyssalStation PRIVATE SFML::Graphics SFML::Window SFML::System)
+target_link_libraries(AbyssalStation PRIVATE SFML::Graphics SFML::Window SFML::System SFML::Audio)

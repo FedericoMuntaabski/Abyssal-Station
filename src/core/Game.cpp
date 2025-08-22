@@ -156,6 +156,19 @@ void Game::update(float deltaTime)
             // Ignore any window title update errors
         }
     }
+
+    // Ensure the SFX keeps playing: some backends might stop instead of looping reliably,
+    // so replay if it's stopped (this is a safe fallback even if setLooping(true) is used).
+    if (m_sound) {
+        try {
+            auto status = m_sound->getStatus();
+            if (status == sf::SoundSource::Status::Stopped) {
+                m_sound->play();
+            }
+        } catch (...) {
+            // don't let audio errors break the update loop
+        }
+    }
 }
 
 void Game::render()
