@@ -39,3 +39,103 @@
 
 # debug information files
 *.dwo
+
+# =========================
+# Compilación / Binarios
+# =========================
+/build/
+/bin/
+/obj/
+*.exe
+*.out
+*.o
+*.a
+*.lib
+
+# =========================
+# Visual Studio Code
+# =========================
+.vscode/
+
+# =========================
+# CMake
+# =========================
+CMakeFiles/
+CMakeCache.txt
+cmake_install.cmake
+Makefile
+
+# Visual Studio
+.vs/
+*.suo
+*.user
+*.userosscache
+*.sln.docstates
+*.VC.db
+*.VC.opendb
+
+# Visual C++ project user options
+*.vcxproj.user
+
+# Visual Studio build folders
+/Release/
+/x64/Release/
+
+# Windows thumbnail cache and system files
+Thumbs.db
+ehthumbs.db
+Desktop.ini
+
+# macOS
+.DS_Store
+
+# JetBrains IDEs
+.idea/
+*.iml
+
+# VS Code (ensure workspace settings preserved)
+.vscode/*
+!/.vscode/settings.json
+
+# Logs and databases
+*.log
+*.sql
+*.sqlite
+
+# Test results
+TestResults/
+coverage/
+
+# Temporary files
+*~
+*.swp
+*.tmp
+*.temp
+
+# Python
+__pycache__/
+*.py[cod]
+*.pyc
+*.pyo
+env/
+.venv/
+
+# Node
+node_modules/
+npm-debug.log*
+package-lock.json
+yarn.lock
+
+# Archives
+*.zip
+*.tar.gz
+*.rar
+*.7z
+
+# Coverage and profiler outputs
+*.gcda
+*.gcno
+*.gcov
+
+# CPack
+CPackConfig.cmake
