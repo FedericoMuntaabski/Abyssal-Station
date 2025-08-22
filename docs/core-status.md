@@ -99,3 +99,11 @@ Notas y recomendaciones
 - Recursos de audio: para pistas largas usar `sf::Music` (streaming) en lugar de `sf::SoundBuffer` para reducir uso de RAM.
 
 Si quieres que deje estos cambios en un changelog separado o que incluya ejemplos de código en esta misma página (cómo inicializar logger, cómo cargar assets en `main`), lo agrego enseguida.
+
+Estado de la rama `feature/core`
+-------------------------------
+Todos los cambios descritos en este documento han sido comiteados y empujados a la rama remota `origin/feature/core`.
+
+- Último commit publicado en la rama: `f4b19c6` (docs(core-status): document all changes applied in feature/core).
+
+Si quieres que agregue un `CHANGELOG.md` en la raíz con estas entradas o que etiquete la rama, lo hago a continuación.
