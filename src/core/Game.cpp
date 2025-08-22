@@ -56,21 +56,24 @@ void Game::stop()
 
 void Game::processEvents()
 {
-    // SFML 3: pollEvent() returns an optional-like event (or similar). Use its return value.
-    while (true) {
-        auto maybeEvent = m_window.pollEvent();
-        if (!maybeEvent) break;
-        const sf::Event &event = *maybeEvent;
+    // SFML 3: pollEvent() returns std::optional<Event>
+    while (auto maybeEvent = m_window.pollEvent()) {
+        const sf::Event& event = *maybeEvent;
         if (event.is<sf::Event::Closed>()) {
             stop();
         }
         else if (event.is<sf::Event::Resized>()) {
-            // Update the view to the new window size so rendering scales correctly
-            auto resized = event.get<sf::Event::Resized>();
-            sf::Vector2u newSize = resized.size;
-            m_window.setView(sf::View(sf::FloatRect(0.f, 0.f,
-                                           static_cast<float>(newSize.x),
-                                           static_cast<float>(newSize.y))));
+            if (auto resized = event.getIf<sf::Event::Resized>()) {
+                // Vector2u uses .x and .y members
+                unsigned int newWidth = resized->size.x;
+                unsigned int newHeight = resized->size.y;
+
+                // Create a view matching the new size and center it
+                sf::View view;
+                view.setSize(sf::Vector2f(static_cast<float>(newWidth), static_cast<float>(newHeight)));
+                view.setCenter(sf::Vector2f(static_cast<float>(newWidth) / 2.f, static_cast<float>(newHeight) / 2.f));
+                m_window.setView(view);
+            }
         }
         // No player/AI/networking logic here per requirements
     }
