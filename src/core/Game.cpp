@@ -1,4 +1,6 @@
 #include "Game.h"
+#include "core/AssetManager.h"
+#include <filesystem>
 #include <iostream>
 
 Game::Game(unsigned int width, unsigned int height, const std::string& title)
@@ -10,6 +12,54 @@ Game::Game(unsigned int width, unsigned int height, const std::string& title)
     } catch (const std::exception& e) {
         std::cerr << "Failed to initialize Game: " << e.what() << std::endl;
         throw;
+    }
+
+    // Load assets for a quick smoke test (search up the filesystem for an assets/ folder)
+    try {
+        namespace fs = std::filesystem;
+        auto findAssetsSubdir = [&](const std::string& subdir) -> std::string {
+            fs::path p = fs::current_path();
+            for (int i = 0; i < 6; ++i) {
+                fs::path candidate = p / "assets" / subdir;
+                if (fs::exists(candidate) && fs::is_directory(candidate)) {
+                    return candidate.string();
+                }
+                if (p.has_parent_path()) p = p.parent_path();
+                else break;
+            }
+            return std::string();
+        };
+
+        std::string texPath = findAssetsSubdir("textures");
+        if (!texPath.empty()) {
+            AssetManager::instance().loadTexturesFrom(texPath);
+        } else {
+            std::cerr << "Error: assets/textures folder not found (searched upwards)\n";
+        }
+
+        std::string sndPath = findAssetsSubdir("sounds");
+        if (!sndPath.empty()) {
+            AssetManager::instance().loadSoundsFrom(sndPath);
+        } else {
+            std::cerr << "Error: assets/sounds folder not found (searched upwards)\n";
+        }
+
+        m_backgroundTexture = AssetManager::instance().getTexture("background");
+        if (!m_backgroundTexture) {
+            std::cerr << "Warning: background texture not found\n";
+        }
+
+        m_sfxBuffer = AssetManager::instance().getSound("sound_test");
+        if (m_sfxBuffer) {
+            // sf::Sound requires a buffer at construction in this SFML version
+            m_sound = std::make_unique<sf::Sound>(*m_sfxBuffer);
+            // Play looped for demo
+            m_sound->setLooping(true);
+        } else {
+            std::cerr << "Warning: sound_test sound not found\n";
+        }
+    } catch (const std::exception& e) {
+        std::cerr << "Asset loading error: " << e.what() << std::endl;
     }
 }
 
@@ -32,12 +82,20 @@ void Game::initWindow(unsigned int width, unsigned int height, const std::string
 
     // Set a reasonable frame limit; the user can modify later
     m_window.setFramerateLimit(60);
+
+    // store base title for FPS updates
+    m_title = title;
 }
 
 void Game::run()
 {
     m_isRunning = true;
     m_clock.restart();
+
+    // Play a short SFX on start (if available)
+    if (m_sound) {
+        m_sound->play();
+    }
 
     while (m_isRunning && m_window.isOpen()) {
         // Calculate delta time
@@ -81,16 +139,55 @@ void Game::processEvents()
 
 void Game::update(float deltaTime)
 {
-    // Placeholder for update logic; intentionally empty
-    // deltaTime can be used by game systems for animations/physics
-    (void)deltaTime;
+    // Update FPS counter and refresh title once per second
+    m_fpsAccumulator += deltaTime;
+    m_fpsFrames += 1;
+
+    if (m_fpsAccumulator >= 1.0f) {
+        m_fps = static_cast<float>(m_fpsFrames) / m_fpsAccumulator;
+        m_fpsAccumulator = 0.0f;
+        m_fpsFrames = 0;
+
+        // update title with FPS
+        try {
+            if (!m_title.empty())
+                m_window.setTitle(m_title + " - FPS: " + std::to_string(static_cast<int>(m_fps + 0.5f)));
+        } catch (...) {
+            // Ignore any window title update errors
+        }
+    }
+
+    // Ensure the SFX keeps playing: some backends might stop instead of looping reliably,
+    // so replay if it's stopped (this is a safe fallback even if setLooping(true) is used).
+    if (m_sound) {
+        try {
+            auto status = m_sound->getStatus();
+            if (status == sf::SoundSource::Status::Stopped) {
+                m_sound->play();
+            }
+        } catch (...) {
+            // don't let audio errors break the update loop
+        }
+    }
 }
 
 void Game::render()
 {
     m_window.clear(sf::Color::Black);
 
-    // Placeholder: no draw calls per requirements
+    // Draw background if available
+    if (m_backgroundTexture) {
+        sf::Sprite bg(*m_backgroundTexture);
+        // scale background to window size if necessary
+        auto winSize = m_window.getSize();
+        sf::Vector2f texSize(static_cast<float>(m_backgroundTexture->getSize().x), static_cast<float>(m_backgroundTexture->getSize().y));
+        if (texSize.x > 0 && texSize.y > 0) {
+            float scaleX = static_cast<float>(winSize.x) / texSize.x;
+            float scaleY = static_cast<float>(winSize.y) / texSize.y;
+            bg.setScale(sf::Vector2f(scaleX, scaleY));
+        }
+        m_window.draw(bg);
+    }
 
     m_window.display();
 }

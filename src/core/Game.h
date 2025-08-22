@@ -2,6 +2,8 @@
 #define A2B9B8_GAME_H
 
 #include <SFML/Graphics.hpp>
+#include <SFML/Audio.hpp>
+#include <memory>
 #include <string>
 
 class Game {
@@ -25,6 +27,17 @@ private:
     sf::RenderWindow m_window;
     sf::Clock m_clock; // for delta time
     bool m_isRunning;
+    // FPS display helpers
+    std::string m_title;
+    float m_fps{0.0f};
+    float m_fpsAccumulator{0.0f};
+    int m_fpsFrames{0};
+
+    // Background & sound test
+    std::shared_ptr<sf::Texture> m_backgroundTexture;
+
+    std::shared_ptr<sf::SoundBuffer> m_sfxBuffer;
+    std::unique_ptr<sf::Sound> m_sound;
 };
 
 #endif // A2B9B8_GAME_H
