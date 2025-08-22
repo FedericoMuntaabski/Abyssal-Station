@@ -66,14 +66,36 @@ Casos borde y riesgos
 - SFML API: Código usa características acordes a SFML 3 (VideoMode con Vector2u, optional event API). Requiere confirmar dependencia vinculada a SFML 3.
 - Paths: Uso de std::filesystem asume C++17+ y plataformas compatibles.
 
-Cambios recientes en la rama `feature/core`
------------------------------------------
-- Integración básica de assets en `Game`: el constructor ahora busca y carga `assets/textures` y `assets/sounds` (búsqueda hacia arriba desde el working directory), carga `background` y `sound_test` si existen.
-- Render: se dibuja el `background` (escalado a la ventana) en `Game::render()` para pruebas visuales.
-- Audio: se añadió reproducción de `sound_test` al iniciar `Game::run()` y el SFX se configura en modo loop para demostración.
-- FPS: se añadió un contador de FPS que actualiza el título de la ventana una vez por segundo.
-- Build/CMake: se añadió la componente `Audio` a `find_package(SFML ...)`, y se incluyó `src/core/AssetManager.cpp` en los sources del ejecutable para resolver símbolos en tiempo de link.
+Cambios aplicados en `feature/core`
+----------------------------------
+Resumen detallado de cambios aplicados en esta rama (delta y motivos):
 
-Notas adicionales:
-- Los mensajes de error/advertencia siguen usando `std::cerr`; se recomienda reemplazarlos por `core::Logger` para centralizar logs en futuras tareas.
-- `AssetManager` continúa siendo no recursivo por defecto; la búsqueda en `Game` compensa la diferencia de working dir al ejecutar el binario desde `Release/`.
+- src/core/Game.h
+  - Añadidos miembros para soporte de FPS (título base, acumulador, contadores).
+  - Añadidos miembros para pruebas de assets: `m_backgroundTexture`, `m_sfxBuffer` y `m_sound`.
+
+- src/core/Game.cpp
+  - `initWindow()` ahora almacena el título base en `m_title` para mostrar FPS.
+  - Implementada búsqueda hacia arriba en el filesystem para localizar `assets/textures` y `assets/sounds` incluso si el exe se ejecuta desde `Release/`.
+  - Llamadas a `AssetManager::loadTexturesFrom(...)` y `loadSoundsFrom(...)` tras inicializar la ventana.
+  - Carga de `background` (si existe) y dibujo escalado del background en `render()` para una prueba visual.
+  - Carga de `sound_test` (si existe) y construcción de `sf::Sound` con el buffer; reproducción al iniciar `run()` y configuración en loop para demo.
+  - Lógica de FPS: acumulador y actualización del título una vez por segundo.
+
+- CMakeLists.txt
+  - `find_package(SFML ...)` ahora incluye el componente `Audio`.
+  - `src/core/AssetManager.cpp` añadido a las fuentes del ejecutable para resolver símbolos de AssetManager en el enlace.
+
+- assets/ (nuevo en el repo)
+  - Se añadió una estructura de ejemplo `assets/textures` y `assets/sounds` con placeholders para pruebas locales.
+
+Commits relevantes
+- 45b5e0f: feature/core: update Game to show FPS in title; update core-status doc
+- d17f237: feature/core: loop sound_test; document recent core changes
+
+Notas y recomendaciones
+- Logging: actualmente las advertencias y errores siguen usando `std::cerr`. Se recomienda sustituir por `core::Logger::instance()` para centralizar trazas y soportar archivo/filtrado por nivel.
+- AssetManager: sigue siendo no recursivo. Si se prefiere cargar subdirectorios, conviene añadir un parámetro `recursive` a las funciones de carga o una carga recursiva central.
+- Recursos de audio: para pistas largas usar `sf::Music` (streaming) en lugar de `sf::SoundBuffer` para reducir uso de RAM.
+
+Si quieres que deje estos cambios en un changelog separado o que incluya ejemplos de código en esta misma página (cómo inicializar logger, cómo cargar assets en `main`), lo agrego enseguida.
