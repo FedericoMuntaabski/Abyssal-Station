@@ -139,3 +139,18 @@ yarn.lock
 
 # CPack
 CPackConfig.cmake
+
+# =========================
+# Project assets (ignore large binary assets by default)
+# If you want to keep small placeholder files (like README), whitelist them with a '!' rule.
+# Note: files already committed remain tracked; to untrack a committed asset use: git rm --cached <file>
+# =========================
+/assets/*.png
+/assets/*.jpg
+/assets/*.jpeg
+/assets/*.bmp
+/assets/*.wav
+/assets/*.ogg
+/assets/*.flac
+/assets/*.mp3
+!/assets/README.md
