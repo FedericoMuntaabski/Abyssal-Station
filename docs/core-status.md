@@ -66,61 +66,14 @@ Casos borde y riesgos
 - SFML API: Código usa características acordes a SFML 3 (VideoMode con Vector2u, optional event API). Requiere confirmar dependencia vinculada a SFML 3.
 - Paths: Uso de std::filesystem asume C++17+ y plataformas compatibles.
 
-## Cómo compilar y probar (PowerShell)
+Cambios recientes en la rama `feature/core`
+-----------------------------------------
+- Integración básica de assets en `Game`: el constructor ahora busca y carga `assets/textures` y `assets/sounds` (búsqueda hacia arriba desde el working directory), carga `background` y `sound_test` si existen.
+- Render: se dibuja el `background` (escalado a la ventana) en `Game::render()` para pruebas visuales.
+- Audio: se añadió reproducción de `sound_test` al iniciar `Game::run()` y el SFX se configura en modo loop para demostración.
+- FPS: se añadió un contador de FPS que actualiza el título de la ventana una vez por segundo.
+- Build/CMake: se añadió la componente `Audio` a `find_package(SFML ...)`, y se incluyó `src/core/AssetManager.cpp` en los sources del ejecutable para resolver símbolos en tiempo de link.
 
-Pasos reproducibles para configurar, compilar y ejecutar un smoke test en Windows PowerShell (ejecutar desde la raíz del repo):
-
-```powershell
-# 1) Configurar el directorio de build y generar (x64 Release)
-cmake -S . -B build -A x64 -DCMAKE_BUILD_TYPE=Release
-
-# 2) Compilar (Release)
-cmake --build build --config Release
-
-# 3) Ejecutar el binario resultante (ruta probable)
-if (Test-Path "build/Release/AbyssalStation.exe") {
-    & "build/Release/AbyssalStation.exe"
-} elseif (Test-Path "Release/AbyssalStation.exe") {
-    & "Release/AbyssalStation.exe"
-} else {
-    Write-Host "Binario no encontrado. Revisa el output del build o busca AbyssalStation.exe en la carpeta build/ o Release/."
-}
-
-# Resultado esperado mínimo:
-# - El ejecutable arranca y abre la ventana SFML sin lanzar excepciones.
-# - El proceso devuelve exit code 0 al cerrarse (o cierra sin errores visibles).
-```
-
-Notas:
-- Si usás Visual Studio como generador, necesitás tener la versión adecuada instalada.
-- En CI conviene usar el flag `--config Release` al invocar `cmake --build`.
-
-## Build status
-
-- Estado: Manual / Unknown
-- Última verificación: 2025-08-22
-
-Nota: Actualmente el estado se actualiza manualmente aquí; se recomienda añadir un workflow de CI (GitHub Actions) que actualice un badge automáticamente.
-
-## Pre-merge checklist (must-have)
-
-Antes de abrir un merge request hacia `develop`/`main`, verificar lo siguiente en la rama `feature/core`:
-
-- [ ] Compilar en Release (PowerShell): `cmake -S . -B build -A x64 -DCMAKE_BUILD_TYPE=Release; cmake --build build --config Release`
-- [ ] Ejecutar smoke test: ejecutar el binario y confirmar que el juego arranca y cierra sin excepciones.
-- [ ] Ejecutar tests unitarios básicos (si existen):
-
-```powershell
-# Ejecutar pruebas con CTest (si se definieron los tests en CMake)
-ctest --test-dir build -C Release --output-on-failure
-```
-
-- [ ] Revisar no usar `std::cerr`/`std::cout` en `src/core` (usar `core::Logger`).
-
-```powershell
-Select-String -Path "src/core/**/*.*" -Pattern 'std::cerr','std::cout' -SimpleMatch
-```
-
-- [ ] Actualizar `docs/core-status.md` con la fecha y resultado de la verificación (marcar Build status apropiadamente).
-
-Si querés, puedo ejecutar la compilación localmente desde aquí y actualizar el campo "Build status" con el resultado.
+Notas adicionales:
+- Los mensajes de error/advertencia siguen usando `std::cerr`; se recomienda reemplazarlos por `core::Logger` para centralizar logs en futuras tareas.
+- `AssetManager` continúa siendo no recursivo por defecto; la búsqueda en `Game` compensa la diferencia de working dir al ejecutar el binario desde `Release/`.
