@@ -57,6 +57,21 @@ El módulo `scene` sigue proveyendo la abstracción de pantallas con una pila LI
   5. Llamar `CollisionSystem::resolve(player, dt)` como fallback para corregir solapamientos residuales.
   6. Sincronizar debug visuals con `player->position()`.
 
+  5) Integración con AI / EnemyManager (novedades)
+  - `PlayScene::onEnter()` ahora crea también un `ai::EnemyManager` y registra los enemigos que crea. El flujo de la escena mantiene la propiedad de las entidades (a través de `EntityManager`) y pasa punteros no propietarios a `EnemyManager` para coordinar la IA.
+  - Los enemigos (ej. id=3 y id=4) se crean en `onEnter()` y se agregan a `EntityManager`. Inmediatamente después se registran en `EnemyManager` con `addEnemyPointer`.
+  - En `PlayScene::update(dt)` el manejo de enemigos fue centralizado:
+    - `m_enemyManager->updateAll(dt, playerPos)` ejecuta las FSMs.
+    - `m_enemyManager->planAllMovement(dt, m_collisionManager.get())` planifica movimientos collision-aware para cada enemigo.
+    - `m_enemyManager->commitAllMoves(m_collisionManager.get())` valida y confirma movimientos.
+
+  6) Visual debug de IA
+  - Cada `Enemy` ahora dibuja un cono de visión de 65° orientado según su `facingDir_` (actualizado al moverse). Los colores del cono son configurables con `setVisionColors`.
+
+  Notas de integración
+  - Mantener `EntityManager` como propietario único de entidades evita la doble propiedad; `EnemyManager` actúa como orquestador que opera sobre punteros no propietarios.
+  - El enfoque facilita pruebas y logging centralizado de bloqueos de movimiento (por ejemplo: logs desde `EnemyManager::commitAllMoves`).
+
 - Observaciones sobre el enfoque:
   - Pre-move validation evita que el `Player` atraviese paredes al bloquear el movimiento antes de aplicarlo.
   - Actualmente se bloquea el movimiento completo si el testBounds solapa; no hay sliding por defecto.

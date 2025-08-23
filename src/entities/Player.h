@@ -32,6 +32,9 @@ public:
     int health() const noexcept { return health_; }
     State state() const noexcept { return state_; }
 
+    // Apply damage to the player
+    void applyDamage(int amount);
+
 private:
     float speed_;
     int health_;

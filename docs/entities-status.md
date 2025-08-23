@@ -14,6 +14,35 @@ Archivos relevantes
 - `src/entities/Entity.h` / `src/entities/Entity.cpp` — clase base abstracta.
 - `src/entities/EntityManager.h` / `src/entities/EntityManager.cpp` — gestor de entidades (vector de `unique_ptr`). Ahora notifica a `CollisionManager` para añadir/actualizar/remover colliders.
 - `src/entities/Player.h` / `src/entities/Player.cpp` — implementación concreta de jugador con nuevo API de movimiento previsto (compute/commit).
+ - `src/entities/Player.h` / `src/entities/Player.cpp` — implementación concreta de jugador con nuevo API de movimiento previsto (compute/commit).
+
+Nuevas integraciones relacionadas con IA
+- `Enemy` (nuevo) en `src/ai/Enemy.{h,cpp}` es ahora una subclase de `Entity` y se gestiona por `EntityManager` como cualquier otra entidad. Los enemigos usan la misma API de movimiento planificado (`computeIntendedMove` / `commitMove`) para que la escena y el `CollisionManager` puedan validar sus movimientos.
+- `EnemyManager` (nuevo) en `src/ai/EnemyManager.{h,cpp}` mantiene punteros no propietarios (`Enemy*`) registrados por `PlayScene` tras crear y añadir las entidades al `EntityManager`. `EnemyManager` centraliza:
+  - La ejecución de la FSM de cada enemigo (`updateAll`).
+  - La planificación de movimiento collision-aware (`planAllMovement`).
+  - El commit de movimientos tras chequeos de colisión (`commitAllMoves`).
+
+Cambios en `PlayScene` y flujo de autoridad
+- `PlayScene` ahora crea y mantiene un `EnemyManager`. Al crear enemigos, las entidades se agregan a `EntityManager` (que mantiene ownership via `unique_ptr`) y se registra el puntero en `EnemyManager` mediante `addEnemyPointer`.
+- En `PlayScene::update(dt)` el flujo es:
+  1. `m_enemyManager->updateAll(dt, playerPos)` — ejecuta FSMs.
+  2. `m_enemyManager->planAllMovement(dt, m_collisionManager.get())` — cada enemigo calcula `intendedPosition_` teniendo en cuenta `CollisionManager`.
+  3. `m_enemyManager->commitAllMoves(m_collisionManager.get())` — realiza comprobaciones finales y llama `commitMove()` si no hay colisión.
+
+Notas sobre ownership y colisiones
+- `EntityManager` sigue siendo la fuente de la verdad para la propiedad de entidades (almacena `std::unique_ptr<Entity>`). `EnemyManager` solo mantiene referencias no propietarias para coordinar IA.
+- `EnemyManager::commitAllMoves` reutiliza `CollisionManager::firstColliderForBounds` para validar cada movimiento antes de confirmar.
+
+IA, visión y ataques
+- `Enemy` implementa una FSM (IDLE, PATROL, CHASE, ATTACK, RETURN). La detección usa distancia euclídea con `visionRange_`.
+- Visual debug: los enemigos dibujan un cono de visión (65°) orientado por `facingDir_` que se actualiza al moverse. Los colores del cono son configurables (`setVisionColors`).
+- Ataque básico: `Enemy::attack(Player&)` llama `Player::applyDamage(int)`. Se añadió cooldown para limitar la frecuencia de ataques.
+
+Impacto en `entities` y recomendaciones
+- El patrón compute/commit de `Player` se extendió a `Enemy`, por lo que el `Entity` contrato es compatible con la validación centralizada de colisiones.
+- Recomendación: conservar `EntityManager` como único propietario y registrar punteros en sistemas que centralizan comportamiento (como `EnemyManager`) para evitar doble propiedad o slicing.
+
 
 Visión general
 El módulo `entities` sigue proveyendo la abstracción mínima para objetos actualizables/repintables. Recientemente se adaptó para integrarse con un sistema de colisiones simple: el `EntityManager` registra bounds en `CollisionManager` y el `Player` expone una API para calcular movimientos sin aplicarlos, de forma que la escena pueda pre-validarlos.
