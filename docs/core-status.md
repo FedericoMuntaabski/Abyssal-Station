@@ -1,138 +1,81 @@
-# Estado actual del Core (consolidado)
+# Estado actual del Core (consolidado y actualizado con cambios recientes)
 
 Resumen corto
-- Rama actual de trabajo: `feature/Player` / `feature/scene` (cambios recientes integrados en `src/core`).
-- Objetivo: Documento que recoge el estado actual del núcleo del motor tras las últimas modificaciones: integración del sistema de escenas, nuevo subsistema de input, y ajustes en carga de assets y en el bucle principal (`Game`).
+- Rama principal de trabajo: `feature/UI` (esta rama integró cambios de UI/menus e introdujo ajustes en input y en la integración con `Game`).
+- Objetivo: explicar el estado actual del core tras integrar el sistema de escenas, el subsistema de input actualizado y la integración de un módulo de UI/menus (Main/Pause/Options) que afecta a `Game` y a las escenas.
 
-Checklist de requisitos de esta adaptación
-- [x] Actualizar la descripción del `Game` para reflejar la delegación a `SceneManager`.
-- [x] Documentar el nuevo `input::InputManager` y su integración con escenas.
-- [x] Reflejar el estado de `AssetManager`, `Logger` y `Timer`.
+Checklist de actualizaciones aplicadas
+- [x] Documentar la delegación del bucle a `SceneManager` y la integración con UI/menus.
+- [x] Describir cambios en `InputManager` (detección per-frame y soporte multi-bindings).
+- [x] Anotar ajustes en `Game` (llamada a `InputManager::endFrame()` y delegación de UI/menus desde escenas).
 
-Archivos revisados
-- `src/core/Game.h` / `src/core/Game.cpp`
-- `src/core/AssetManager.h` / `src/core/AssetManager.cpp`
-- `src/core/Logger.h` / `src/core/Logger.cpp`
-- `src/core/Timer.h` / `src/core/Timer.cpp`
-- `src/input/InputManager.h` / `src/input/InputManager.cpp`
-- `src/scene/` (Scene, SceneManager, MenuScene, PlayScene)
+Archivos revisados / actualizados
+- `src/core/Game.h` / `src/core/Game.cpp` (llamada a `InputManager::endFrame()` y flujo de escenas)
+- `src/core/AssetManager.*`, `src/core/Logger.*`, `src/core/Timer.*`
+- `src/input/InputManager.h` / `src/input/InputManager.cpp` (endFrame, multi-bindings)
+- `src/scene/` (Scene, SceneManager, MenuScene, PlayScene) — ahora integran `UIManager` y menús
+- `src/ui/` (nuevo) — `Menu`, `MainMenu`, `PauseMenu`, `OptionsMenu`, `UIManager`
 
-Visión general del core
-
-Componentes principales y estado actualizado
+Visión general del core (resumen actualizado)
 
 1) Game
-- Clase: `Game` — encapsula la ventana SFML y el bucle principal.
-- API pública: `Game(width, height, title)`, `run()`, `stop()` (bloqueante el `run`).
+- Clase: `Game` — ventana SFML y loop principal.
 - Cambios clave:
-  - `Game` crea y mantiene una instancia de `scene::SceneManager` y delega eventos, update y render a la escena activa.
-  - `processEvents()` reenvía eventos a `input::InputManager` y a la escena actual (`SceneManager::handleEvent`).
-  - Se añadió búsqueda robusta de la carpeta `assets/` ascendiendo el filesystem cuando el ejecutable corre desde `build/Release`.
-  - Soporte de FPS en el título para depuración.
-- Estado: Implementado y probado localmente; el ejecutable se construye en `build/Release/AbyssalStation.exe` y las escenas básicas (Menu/Play) funcionan y responden a entradas.
+  - `Game` crea `scene::SceneManager` y empuja `MenuScene` al inicio.
+  - `Game::processEvents()` reenvía eventos a `input::InputManager::getInstance().update(event)` y a la escena actual.
+  - Se añadió `input::InputManager::endFrame()`; en esta rama el juego toma un snapshot del estado previo de entrada justo ANTES de procesar los eventos del frame (es decir, `endFrame()` se invoca al inicio de la iteración de frame) para preservar la semántica de "just pressed" durante el procesamiento de eventos y las actualizaciones por frame.
+  - El post-build copia `assets/` al directorio del ejecutable y `Game` realiza una búsqueda robusta de assets al iniciarse.
 
-2) Subsystema de Input
-- Archivos: `src/input/Action.h`, `src/input/InputManager.h/.cpp`.
-- Descripción: `InputManager` es un singleton que mapea `input::Action` a teclas (`sf::Keyboard::Key`), mantiene estado actual y previo, y expone consultas como `isActionPressed()` y `isActionJustPressed()`.
-- Integración: `Game` y las escenas usan `InputManager::getInstance()` en lugar de comprobar teclas crudas; `InputManager` inicializa bindings por defecto (WASD, Enter, Escape, P) y permite rebind.
+2) Subsystema de Input (actualizado)
+ - `InputManager` ahora:
+  - Soporta múltiples bindings por acción (vector de `sf::Keyboard::Key`) y equivalentes para botones de ratón (`mouseBindings_`).
+  - `update(event)` actualiza el estado `currentKeys_` y `currentMouseButtons_` por evento; `endFrame()` copia el estado actual a previo una vez por frame.
+  - `isActionJustPressed` / `isActionPressed` / `isActionReleased` comprueban todos los bindings asociados a una acción (teclas y botones de ratón).
+  - Inicializa bindings por defecto (W/A/S/D para movimiento, flechas también añadidas; Enter = Confirm; Escape = Cancel; P = Pause; Left Mouse = Confirm) y registra los bindings con `core::Logger`.
+  - Expone nuevas APIs para la UI y remapeo: `rebindKeys`, `rebindMouse`, `getLastKeyEvent`, `getLastMouseButtonEvent`, `clearLastEvents`, `getBindingName`, y getters para bindings actuales. `update()` registra el último evento crudo para permitir una UX de remap simple en `OptionsMenu`.
 
-3) Sistema de escenas
-- Archivos: `src/scene/Scene.h`, `SceneManager.*`, `MenuScene.*`, `PlayScene.*`.
-- Funcionalidad: stack de escenas (push/pop/replace), delegación de eventos/update/render, hooks `onEnter()`/`onExit()` y logging de transiciones.
-- Integración con `Game`: `Game` crea el `SceneManager` y empuja `MenuScene` al inicio.
+3) UI / Menús (nueva capa integrándose con escenas)
+- Nuevos ficheros en `src/ui/` y su integración:
+  - `Menu` (base abstracta): interfaz para `handleInput()`, `update()`, `render()` y hooks `onEnter()`/`onExit()`.
+  - `MainMenu`: Start/Options/Exit (usa `SceneManager` y `UIManager`).
+  - `PauseMenu`: Resume/Options/Quit — cuando se abre, marca pausa en `UIManager` y al cerrarse la desactiva.
+  - `OptionsMenu`: Volume/Controls placeholders (ajuste simple de volumen, logs).
+  - `UIManager`: pila de menús, delegación `update`/`render`, `pushMenu`/`popMenu`, consultas `isMenuActive(name)` y `isAnyMenuActive()`, y flag `setPaused()`/`isPaused()`.
 
-4) AssetManager
-- Archivos: `src/core/AssetManager.h/.cpp`.
-- Estado: Singleton que carga texturas y buffers de sonido desde carpetas específicas; `Game` lo usa para una carga rápida de `textures` y `sounds` (p. ej. `background`, `sound_test`).
-- Limitaciones: aún no centraliza la carga de fuentes (actualmente `MenuScene` busca fuentes directamente), no hay protección por mutex para cargas concurrentes ni hot-reload.
+4) Integración de UI con escenas
+- `MenuScene` crea un `UIManager` y empuja `MainMenu` en `onEnter()`.
+- `PlayScene` crea su propio `UIManager` y usa `pushMenu(new PauseMenu(...))` para alternar pausa cuando el usuario presiona Escape.
+- `PlayScene::update()` ahora delega primero a `m_uiManager->update(dt)` y: si `PauseMenu` está activo, la función retorna temprano (congelando la lógica de juego); si cualquier menú está activo, evita propagar entradas de movimiento al juego (prioridad de UI).
 
-5) Logger
-- Archivos: `src/core/Logger.h/.cpp`.
-- Estado: Logger singleton con salida a consola y archivo (thread-safe mediante mutex). Usado por `Game`, `SceneManager` y escenas para trazas y advertencias.
-
-6) Timer / TimerScope
-- Archivos: `src/core/Timer.h/.cpp`.
-- Estado: utilidades para medir delta times y duraciones; `Timer` y `TimerScope` siguen presentes y estables.
-
-7) main.cpp
-- `main()` crea `Game` y llama `run()`; incluye manejo básico de excepciones y salidas limpias.
-
-Contratos mínimos
-- `Game::run()` es bloqueante y finaliza limpiamente si no hay escenas activas.
-- `SceneManager` no lanza en operaciones normales; errores se registran con `Logger`.
-- `AssetManager::load*From(path)` registra errores de I/O y devuelve los assets cargados cuando es posible.
-
-Casos borde y riesgos
-- Recursos faltantes: la app registra y continúa (por ejemplo, si faltan fuentes o imágenes el comportamiento degrade graceful con logs).
-- Concurrencia: `Logger` es thread-safe; `AssetManager` no está protegido (riesgo si se accede desde múltiples hilos).
-- Dependencias: el proyecto está adaptado a SFML 3; requiere que SFML (con Audio) esté disponible en vcpkg o sistema.
-- Paths y ejecución: Existe un paso post-build que copia `assets/` a la carpeta del ejecutable; si se ejecuta desde otra ruta la búsqueda robusta intenta localizar `assets/` ascendiendo el árbol.
-
-Cambios aplicados (delta)
-- `src/core/Game.h/cpp`: integración de `scene::SceneManager`, delegación de eventos/update/render, búsqueda de assets y soporte de FPS.
-- `src/input/*`: nuevo subsistema `InputManager` y `Action`.
-- `src/scene/*`: nuevo sistema de escenas con `MenuScene` y `PlayScene` de ejemplo.
-- `src/core/AssetManager.*`: carga central de texturas y sonidos (fuentes aún no centralizadas).
-- `src/core/Logger.*`, `src/core/Timer.*`: utilidades consolidadas y usadas por el core y las escenas.
+5) AssetManager, Logger y Timer
+- `AssetManager` sigue gestionando texturas y sonidos; carga de fuentes sigue siendo local en `MenuScene` (recomendado mover a `AssetManager`).
+- `Logger` y `Timer` mantienen su papel en el core para trazas y mediciones.
 
 Quality gates y estado del build
-- Build: el proyecto compila con CMake / Visual Studio y el post-build copia `assets/` a `build/Release`.
-- Tests: no se añadieron tests automatizados en esta iteración.
-- Smoke test: ejecución local desde `build/Release` evidencia:
-  - `MenuScene` carga `assets/fonts/Long_Shot.ttf` si está disponible (búsqueda robusta), muestra texto y permite transicionar a `PlayScene` con Enter.
-  - `PlayScene` responde a movimiento y Escape vuelve al menú.
+- Build: el proyecto compila correctamente y el ejecutable se genera en `build/Release/AbyssalStation.exe`.
+- Tests: no se añadieron tests automáticos en esta iteración.
+- Smoke test: verificado que:
+  - `MainMenu` aparece al iniciar la app.
+  - Navegación por menús funciona (W/S y Enter).
+  - `PlayScene` pausa la lógica (movimiento y AI) cuando `PauseMenu` está activo.
 
-Recomendaciones y próximos pasos (sugeridos)
-- Centralizar la carga de fuentes en `AssetManager` y eliminar búsquedas ad-hoc en escenas.
-- Añadir tests unitarios básicos para `SceneManager` y `AssetManager`.
-- Añadir un `ResourceLocator` para normalizar rutas de assets (repo, build dir, install dir).
-- Considerar protección con mutex en `AssetManager` si se prevé carga desde múltiples hilos.
+Cambios aplicados (delta)
+- `src/core/Game.cpp`: llamada a `input::InputManager::endFrame()` y flujo de escena inicial.
+- `src/input/*`: `endFrame()`, multi-bindings y correcciones en detección de eventos "just pressed".
+- `src/scene/*`: integración con `UIManager` y creación de menús desde escenas.
+- `src/ui/*`: nuevos ficheros y lógica de menú.
+- `CMakeLists.txt`: añadidos los nuevos ficheros `src/ui/*` para compilación.
+
+Recomendaciones y próximos pasos
+- Mover la carga de fuentes a `AssetManager` y eliminar búsquedas ad-hoc en escenas (mejora de mantenimiento).
+- Cambiar `UIManager::pushMenu(Menu*)` para aceptar `std::unique_ptr<Menu>` y actualizar los call-sites para evitar owning raw pointers.
+- Integrar `OptionsMenu::applyVolume()` con el sistema de audio para que los cambios afecten realmente al SFX/music.
+- Mejorar la UI: overlay translúcido en pausa, centrado y estilos de texto, soporte de mouse.
 
 Resumen corto
-- El core está operativo y ha recibido cambios importantes: sistema de escenas, subsistema de input, centralización parcial de assets y mejoras en `Game`. El binario se construye y ejecuta mostrando el flujo básico Menu->Play->Exit.
-
-Estado de requisitos
-- Actualizar doc: Done.
-- Refactor sugerido (fuentes en AssetManager): Recomendado (pendiente).
+- El core está estable tras integrar el sistema de escenas, los cambios en el subsistema de input y la nueva capa de UI/menus. El juego compila y la interacción básica (navegación por menús, pausa que congela la lógica de la escena) está verificada.
 
 Fin del documento.
-# Estado actual del Core (estado consolidado con cambios recientes)
-
-Resumen corto
-- Ramas relevantes:
-  - `feature/core` (documenta cambios específicos del core)
-  - `feature/scene` (rama activa donde se integraron ajustes de `src/core` para soportar escenas)
-- Objetivo: Documento guía que describe el estado actual del core y recoge los cambios recientes aplicados en `src/core` (por ejemplo: integración de SceneManager, actualizaciones en CMake y manejo de assets en tiempo de ejecución).
-
-Checklist de lo que actualicé en este documento
-- [x] Incluir los cambios recientes en `src/core` (Game y ajustes relacionados).
-- [x] Anotar las nuevas dependencias y ajustes en `CMakeLists.txt`.
-- [x] Documentar el comportamiento de build y runtime (copiado de `assets/` y ruta del ejecutable).
-
-Archivos leídos / relevantes
-- `src/core/Game.h` / `src/core/Game.cpp` (modificados para integrar SceneManager y pruebas de assets)
-- `src/core/AssetManager.h` / `src/core/AssetManager.cpp`
-- `src/core/Logger.h` / `src/core/Logger.cpp`
-- `src/input/Action.h`, `src/input/InputManager.h`, `src/input/InputManager.cpp` (nuevo módulo de input integrado con core)
-- `src/core/Timer.h` / `src/core/Timer.cpp`
-- `src/main.cpp`
-
-Visión general del core
-
-Componentes principales y estado actualizado
-
-1) Game
-- Clase: `Game` (encapsula ventana SFML y bucle principal).
-- API pública: `Game(width, height, title)`, `run()`, `stop()`.
-- Nuevas responsabilidades añadidas: gestionar una instancia de `scene::SceneManager` y delegar eventos, update y render a la escena activa; mantener lógica de prueba para assets (background y audio demo) y mostrar FPS en el título.
-- Implementación relevante:
-  - Se añadió `std::unique_ptr<scene::SceneManager> m_sceneManager;` en la clase `Game`.
-  - `Game::processEvents()` ahora reenvía eventos a `input::InputManager::getInstance().update(event)` además de a la escena actual. Esto permite centralizar y mapear entradas (WASD, Enter, Escape, P) a acciones del juego.
-  - En `run()` se inicializa el `SceneManager`, se hace push de la `MenuScene` al inicio y se delegan eventos/updates/render a `m_sceneManager`.
-  - `processEvents()` ahora reenvía eventos a la escena actual mediante `m_sceneManager->handleEvent(ev)`.
-  - Se mantiene la búsqueda hacia arriba en el filesystem para localizar `assets/` cuando el exe se ejecuta desde `build/Release`.
-- Estado: Implementado y probado localmente: el ejecutable se genera en `build/Release/AbyssalStation.exe`, las escenas (Menu/Play) funcionan, y las transiciones (Enter/Escape) y movimiento en PlayScene están operativas.
-
 Input subsystem (nuevo)
 - `src/input/Action.h`: enum class `input::Action` con acciones básicas (MoveUp, MoveDown, MoveLeft, MoveRight, Confirm, Cancel, Pause).
 - `src/input/InputManager.{h,cpp}`: singleton que mapea `Action` a `sf::Keyboard::Key`, permite `bindKey`, mantiene `currentKeys` y `previousKeys`, y expone `isActionPressed`, `isActionJustPressed`, `isActionReleased`. Inicializa bindings por defecto (WASD + Enter + Escape + P) y usa `core::Logger` para loggear cambios de bindings.

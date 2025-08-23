@@ -1,24 +1,26 @@
-
 # Estado actual del módulo `scene` (actualizado)
 
 Resumen corto
-- Objetivo: Documentar el estado actual de `src/scene` después de las últimas iteraciones: gestor de escenas, `PlayScene` integrado con `EntityManager`, `CollisionManager` y lógica de pre-move para el `Player`.
-- Estado general: Implementación funcional y probada localmente. `MenuScene` y `PlayScene` operan y las transiciones funcionan; `PlayScene` ahora coordina input, pre-validación de movimiento y resolución de colisiones.
+- Objetivo: Documentar el estado actual de `src/scene` tras las últimas iteraciones: gestor de escenas, integración con el nuevo subsistema de UI/menus (`UIManager` y menús concretos), y las mejoras en `PlayScene` para coordinar colisiones y pausar lógica cuando hay menús activos.
+- Estado general: Implementación funcional y probada localmente. `MenuScene`, `PlayScene` y `SceneManager` operan correctamente; se añadió `UIManager` y menús (`MainMenu`, `PauseMenu`, `OptionsMenu`) y se ajustó el flujo de control para que los menús prioricen input y puedan congelar la lógica de juego.
 
 Checklist de adaptación
 - [x] Listar archivos y responsabilidades en `src/scene`.
 - [x] Describir la API pública de `Scene` y `SceneManager`.
-- [x] Detallar comportamiento de `MenuScene` y `PlayScene`, incluyendo integración con `InputManager`, `EntityManager` y `CollisionManager`.
-- [x] Documentar la integración con `Game`, assets y build.
+- [x] Documentar `MenuScene` y `PlayScene` con su integración a `UIManager` y al `InputManager` actualizado.
+- [x] Explicar la política de pause cuando un menú está activo y el logging de transiciones.
 
 Archivos relevantes
 - `src/scene/Scene.h` (interfaz base)
 - `src/scene/SceneManager.h` / `src/scene/SceneManager.cpp`
 - `src/scene/MenuScene.h` / `src/scene/MenuScene.cpp`
-- `src/scene/PlayScene.h` / `src/scene/PlayScene.cpp` (actualizado para colisiones y pre-move)
+- `src/scene/PlayScene.h` / `src/scene/PlayScene.cpp`
 
 Visión general
-El módulo `scene` sigue proveyendo la abstracción de pantallas con una pila LIFO. `PlayScene` fue extendido para crear y orquestar un `CollisionManager` y `CollisionSystem`, inyectarlos en `EntityManager`, y usar una estrategia de pre-validación de movimiento antes de aplicar cambios de posición al `Player`.
+El módulo `scene` continúa proveyendo la abstracción de pantallas con una pila LIFO. En esta iteración se añadieron integraciones con el nuevo sistema de UI:
+- `UIManager` (nuevo, en `src/ui`) administra una pila de `Menu`s y delega `handleInput/update/render` al menú activo.
+- `MenuScene` inicializa el `UIManager` y empuja el `MainMenu` al arrancar.
+- `PlayScene` crea su propio `UIManager` (o reutiliza uno compartido según diseño) para permitir menús en juego (p.ej. `PauseMenu`) y delega a éste la navegación y render de menús.
 
 1) `Scene` (interfaz)
 - Ubicación: `src/scene/Scene.h`.
@@ -32,73 +34,67 @@ El módulo `scene` sigue proveyendo la abstracción de pantallas con una pila LI
 
 2) `SceneManager`
 - Ubicación: `src/scene/SceneManager.{h,cpp}`.
-- Comportamiento: mantiene la pila de escenas, delega eventos y gestión de ciclo de vida (igual que antes).
+- Comportamiento: mantiene la pila de escenas (internamente `std::stack<std::unique_ptr<Scene>>`), y delega `handleEvent`, `update` y `render` a la escena actual. Además, todas las transiciones (push/pop/replace) registran trazas en `core::Logger` para facilitar debugging.
 
 3) `MenuScene`
 - Ubicación: `src/scene/MenuScene.*`.
-- Comportamiento: igual que antes; busca fuente en `assets/fonts`, muestra texto y permite transicionar a `PlayScene`.
+- Comportamiento actualizado:
+  - En `onEnter()` crea un `UIManager` y realiza `push(MainMenu)` para mostrar el menú principal al iniciar la aplicación.
+  - Durante el loop, `MenuScene` delega eventos y render al `UIManager` (el `MainMenu` maneja la navegación: Start → `PlayScene`, Options → `OptionsMenu`, Exit → cerrar la escena/app).
 
 4) `PlayScene` (novedades y flujo)
 - Ubicación: `src/scene/PlayScene.*`.
-- Componentes inicializados en `onEnter()`:
-  - `entities::EntityManager` (gestor de entidades)
-  - `collisions::CollisionManager` (registro de colliders)
-  - `collisions::CollisionSystem` (resolución AABB + logging)
-  - `EntityManager::setCollisionManager(...)` se llama para que `EntityManager` registre/actualice colliders automáticamente.
-  - Se crea un `Player` (id 1) y una `Wall` estática (id 2). La pared está colocada actualmente en `(480,170)` con tamaño `(50,150)` para pruebas.
+- Componentes inicializados en `onEnter()` (resumen):
+  - `entities::EntityManager`
+  - `collisions::CollisionManager`
+  - `collisions::CollisionSystem`
+  - `ai::EnemyManager` (si procede)
+  - `UIManager` (para menús en juego)
 
-- Flujo principal en `update(dt)`:
-  1. Leer entrada y actualizar `m_velocity` / llamar `m_player->handleInput(...)`.
-  2. Llamar `EntityManager::updateAll(dt)` — esto actualiza estados y sincroniza collider bounds en `CollisionManager`.
-  3. Calcular posición objetivo del player con `player->computeIntendedMove(dt)`.
-  4. Crear `sf::FloatRect` con la posición objetivo y consultar `CollisionManager::firstColliderForBounds(bounds, player)`:
-     - Si no hay colisión, llamar `player->commitMove(intended)`.
-     - Si hay un bloqueador, registrar mensaje y no aplicar movimiento (bloqueo completo por ahora).
-  5. Llamar `CollisionSystem::resolve(player, dt)` como fallback para corregir solapamientos residuales.
-  6. Sincronizar debug visuals con `player->position()`.
+- Flujo principal en `update(dt)` (resumen y diferencias relevantes):
+  1. Procesamiento de input: `PlayScene` consulta `InputManager` para controles de juego, pero delega navegación/menu a `UIManager` cuando hay menús activos.
+  2. Antes de aplicar lógica de juego, `PlayScene` llama `m_uiManager->update(dt)` y `m_uiManager->handleInput(...)` (la UI consume eventos relevantes).
+  3. Si `m_uiManager->isAnyMenuActive()` o `m_uiManager->isMenuActive("PauseMenu")` es true, `PlayScene::update` retorna temprano (efecto: la escena queda 'congelada' mientras el menú de pausa está activo). Esto evita que la física, IA y movimientos se procesen mientras el juego está en pausa.
+  4. Si no hay menús activos, se ejecuta la lógica habitual: `EntityManager::updateAll(dt)`, pre-move validation para `Player`, consultas a `CollisionManager`, `CollisionSystem::resolve(...)` y commits de movimiento.
 
-  5) Integración con AI / EnemyManager (novedades)
-  - `PlayScene::onEnter()` ahora crea también un `ai::EnemyManager` y registra los enemigos que crea. El flujo de la escena mantiene la propiedad de las entidades (a través de `EntityManager`) y pasa punteros no propietarios a `EnemyManager` para coordinar la IA.
-  - Los enemigos (ej. id=3 y id=4) se crean en `onEnter()` y se agregan a `EntityManager`. Inmediatamente después se registran en `EnemyManager` con `addEnemyPointer`.
-  - En `PlayScene::update(dt)` el manejo de enemigos fue centralizado:
-    - `m_enemyManager->updateAll(dt, playerPos)` ejecuta las FSMs.
-    - `m_enemyManager->planAllMovement(dt, m_collisionManager.get())` planifica movimientos collision-aware para cada enemigo.
-    - `m_enemyManager->commitAllMoves(m_collisionManager.get())` valida y confirma movimientos.
+- Manejo de tecla Escape / pausa
+  - `PlayScene` detecta la acción de pausa (`Action::Cancel` o `Escape`) y delega a `UIManager` para `push(PauseMenu)` o `pop()` si el `PauseMenu` ya estaba presente. `PauseMenu::onEnter()` / `onExit()` registran logs y actualizan el estado de pausa del `UIManager`.
 
-  6) Visual debug de IA
-  - Cada `Enemy` ahora dibuja un cono de visión de 65° orientado según su `facingDir_` (actualizado al moverse). Los colores del cono son configurables con `setVisionColors`.
+5) Integración con AI / EnemyManager (resumen)
+- `PlayScene` sigue creando y orquestando enemigos a través de `EnemyManager`. Los pasos de planificación y commit de movimientos son compatibles con la validación por `CollisionManager`.
 
-  Notas de integración
-  - Mantener `EntityManager` como propietario único de entidades evita la doble propiedad; `EnemyManager` actúa como orquestador que opera sobre punteros no propietarios.
-  - El enfoque facilita pruebas y logging centralizado de bloqueos de movimiento (por ejemplo: logs desde `EnemyManager::commitAllMoves`).
+6) Logging y trazabilidad
+- Todas las transiciones entre escenas y cambios de estado relevantes (pushing/popping de escenas y menús) registran mensajes a través de `core::Logger`. Esto facilita reproducir el comportamiento en tiempo de ejecución y depurar problemas de sincronización entre la UI y la escena.
 
-- Observaciones sobre el enfoque:
-  - Pre-move validation evita que el `Player` atraviese paredes al bloquear el movimiento antes de aplicarlo.
-  - Actualmente se bloquea el movimiento completo si el testBounds solapa; no hay sliding por defecto.
-  - `CollisionSystem` sigue presente como mecanismo de corrección y logging (rate-limited) cuando se detectan superposiciones.
+Notas de integración y comportamiento observable
+- Prioridad de input: los menús tienen prioridad sobre la lógica de juego. Cuando un menú está activo, la navegación y selección se consumen por `UIManager` y no se propagan a la lógica de `PlayScene`.
+- La semántica de per-frame para entradas se garantizó con `InputManager::endFrame()`, que `Game::run()` llama una vez por frame; esto era necesario para que la navegación de menús (que usa `isActionJustPressed`) funcione correctamente.
+ - La semántica de per-frame para entradas se garantizó con `InputManager::endFrame()`, que `Game::run()` llama una vez por frame; esto era necesario para que la navegación de menús (que usa `isActionJustPressed`) funcione correctamente.
+ - `InputManager` fue extendido para soportar mouse buttons y arrow keys por defecto, y expone APIs para remapear bindings y consultar nombres legibles para UI (`rebindKeys`, `rebindMouse`, `getLastKeyEvent`, `getLastMouseButtonEvent`, `getBindingName`, etc.). Esto permite que `OptionsMenu` presente y remapee controles.
 
 Integración con `Game` y assets
-- `Game` sigue creando `SceneManager` y haciendo `push(MenuScene)` al arrancar. `CMakeLists.txt` fue actualizado para compilar los nuevos archivos si no estaban incluidos.
-- Post-build: los assets se copian a `build/Release/assets` para que las escenas puedan cargar fuentes y texturas.
+- `Game` crea `SceneManager` y empuja `MenuScene` al arrancar (que a su vez muestra el `MainMenu`).
+- `CMakeLists.txt` se actualizó para incluir los ficheros nuevos si no estaban presentes y `Game::run()` ahora respeta la nueva contract (`InputManager::endFrame()` al final del frame).
 
 Quality gates y pruebas rápidas
-- Compilación: OK en la rama de trabajo (Release build generada).
-- Comportamiento verificado localmente: el `Player` ya no se reposiciona automáticamente en `update()`; la escena controla la aplicación de movimiento (pre-check + commit). La pared se usa para pruebas manuales.
+- Compilación: OK (Release build generada en la rama de trabajo `feature/UI`).
+- Runtime verificado: el `MainMenu` aparece al iniciar; dentro de `PlayScene`, pulsar `Escape` abre el `PauseMenu` y congela la lógica de la escena; navegar en menús responde correctamente a las acciones configuradas.
 
 Limitaciones y riesgos
-- Bloqueo completo vs sliding:
-  - Movimiento actual bloquea todo el desplazamiento si el destino colisiona. Para una experiencia más suave, implementar tests por eje (X/Y) y aplicar ejes no bloqueados.
-- Túnel a alta velocidad:
-  - El test puntual de bounds puede fallar si la velocidad mueve al jugador más allá de su tamaño en un frame. Soluciones: subdividir movement, swept-AABB o continuous collision detection.
-- Estado y eliminación de entidades:
-  - `EntityManager` actualiza colliders cada frame; la recomendación de usar mark-for-delete sigue vigente para borrar entidades de forma segura.
+- Diseño de pausa:
+  - Actualmente la pausa congela la mayor parte de la lógica de la escena (actualizaciones, IA y movimiento). Si se desea que ciertos subsistemas sigan ejecutándose (p. ej. animaciones UI, música o redes), habrá que introducir banderas más finas o excepciones por subsistema.
+- Propagación de input:
+  - Asegurar que la UI capture todos los inputs relevantes (incluyendo gamepad/ratón cuando se añadan) para evitar que el juego reciba comandos no deseados mientras un menú está activo.
 
 Recomendaciones y próximos pasos
-- Implementar checks por eje para permitir sliding cuando sólo un eje está bloqueado.
-- Añadir swept-AABB o subdivisión de pasos para evitar tunneling a altas velocidades.
-- Añadir tests de integración: simular movimiento del `Player` hacia la pared y verificar que la posición final no atraviesa el collider.
+- Mantener la separación de responsabilidades: `UIManager` gestiona menús y su ciclo de vida; `Scene` gestiona la lógica del mundo.
+- Reemplazar las llamadas que usan punteros crudos para `pushMenu(Menu*)` por overloads que acepten `std::unique_ptr<Menu>` para evitar ambigüedades de propiedad.
+- Exponer en `OptionsMenu` la visualización y reasignación de bindings (usar la API de `InputManager` para listar/bindear teclas).
+ - Reemplazar las llamadas que usan punteros crudos para `pushMenu(Menu*)` por overloads que acepten `std::unique_ptr<Menu>` para evitar ambigüedades de propiedad.
+ - Mejorar el UI de remapeo en `OptionsMenu`: actualmente existe un flujo básico; se recomienda completar la interfaz para seleccionar por acción, mostrar múltiples bindings y permitir cancelar/timeout.
+ - Nota: la llamada a `getenv` en `MenuScene` fue reemplazada por `_dupenv_s` para evitar advertencias del compilador MSVC.
 
 Resumen rápido
-- `PlayScene` fue extendido para orquestar colisiones: crea y encola `CollisionManager`/`CollisionSystem`, actualiza colliders desde `EntityManager`, y usa un enfoque de pre-move validation seguido de commit/resolve.
+- El módulo `scene` ahora integra de forma limpia el sistema de UI/menus, con `MenuScene` mostrando el `MainMenu` al inicio y `PlayScene` capaz de abrir `PauseMenu` y congelar la lógica de juego mientras los menús están activos. `SceneManager` delega ciclo de vida y registra transiciones en `core::Logger`.
 
 Fin del `scene-status`.

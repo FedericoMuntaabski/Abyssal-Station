@@ -58,6 +58,12 @@ add_executable(AbyssalStation
     src/collisions/CollisionBox.cpp
     src/collisions/CollisionManager.cpp
     src/collisions/CollisionSystem.cpp
+    # UI module
+    src/ui/Menu.cpp
+    src/ui/MainMenu.cpp
+    src/ui/PauseMenu.cpp
+    src/ui/OptionsMenu.cpp
+    src/ui/UIManager.cpp
 )
 
 target_include_directories(AbyssalStation PRIVATE ${CMAKE_SOURCE_DIR}/src)

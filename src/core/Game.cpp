@@ -108,7 +108,11 @@ void Game::run()
         // Calculate delta time
         float deltaTime = m_clock.restart().asSeconds();
 
-        processEvents();
+    // Advance input manager frame so 'just pressed' queries work correctly
+    // Snapshot previous state BEFORE processing new events.
+    input::InputManager::getInstance().endFrame();
+
+    processEvents();
 
         // If no scenes left, stop the game
         if (!m_sceneManager->current()) {
