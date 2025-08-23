@@ -82,6 +82,7 @@ add_executable(AbyssalStation
     src/core/ConfigManager.cpp
     src/ui/OptionsMenu.cpp
     src/ui/UIManager.cpp
+    src/ui/InputHelper.cpp
 )
 
 target_include_directories(AbyssalStation PRIVATE ${CMAKE_SOURCE_DIR}/src)
