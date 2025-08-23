@@ -6,6 +6,8 @@
 #include <memory>
 #include <string>
 
+namespace scene { class SceneManager; }
+
 class Game {
 public:
     // Construct a Game with an optional window size and title
@@ -38,6 +40,9 @@ private:
 
     std::shared_ptr<sf::SoundBuffer> m_sfxBuffer;
     std::unique_ptr<sf::Sound> m_sound;
+
+    // Scene manager for game scenes
+    std::unique_ptr<scene::SceneManager> m_sceneManager;
 };
 
 #endif // A2B9B8_GAME_H

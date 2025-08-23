@@ -1,5 +1,7 @@
 #include "Game.h"
 #include "core/AssetManager.h"
+#include "../scene/SceneManager.h"
+#include "../scene/MenuScene.h"
 #include <filesystem>
 #include <iostream>
 
@@ -97,13 +99,48 @@ void Game::run()
         m_sound->play();
     }
 
+    // Initialize scene manager and push the initial MenuScene
+    m_sceneManager = std::make_unique<scene::SceneManager>();
+    m_sceneManager->push(std::make_unique<scene::MenuScene>(m_sceneManager.get()));
+
     while (m_isRunning && m_window.isOpen()) {
         // Calculate delta time
         float deltaTime = m_clock.restart().asSeconds();
 
         processEvents();
+
+        // If no scenes left, stop the game
+        if (!m_sceneManager->current()) {
+            stop();
+            break;
+        }
+
+        // Delegate update to scene manager
+        m_sceneManager->update(deltaTime);
+
+        // Update other game logic
         update(deltaTime);
-        render();
+
+        // Render: first background, then current scene, then display
+        m_window.clear(sf::Color::Black);
+
+        // Draw background if available
+        if (m_backgroundTexture) {
+            sf::Sprite bg(*m_backgroundTexture);
+            auto winSize = m_window.getSize();
+            sf::Vector2f texSize(static_cast<float>(m_backgroundTexture->getSize().x), static_cast<float>(m_backgroundTexture->getSize().y));
+            if (texSize.x > 0 && texSize.y > 0) {
+                float scaleX = static_cast<float>(winSize.x) / texSize.x;
+                float scaleY = static_cast<float>(winSize.y) / texSize.y;
+                bg.setScale(sf::Vector2f(scaleX, scaleY));
+            }
+            m_window.draw(bg);
+        }
+
+        // Let current scene render
+        m_sceneManager->render(m_window);
+
+        m_window.display();
     }
 }
 
@@ -132,6 +169,12 @@ void Game::processEvents()
                 view.setCenter(sf::Vector2f(static_cast<float>(newWidth) / 2.f, static_cast<float>(newHeight) / 2.f));
                 m_window.setView(view);
             }
+        }
+        // Delegate events to current scene if present
+        if (m_sceneManager && m_sceneManager->current()) {
+            // dispatch a non-const event copy because our Scene API expects a non-const reference
+            sf::Event ev = event;
+            m_sceneManager->handleEvent(ev);
         }
         // No player/AI/networking logic here per requirements
     }
@@ -173,21 +216,5 @@ void Game::update(float deltaTime)
 
 void Game::render()
 {
-    m_window.clear(sf::Color::Black);
-
-    // Draw background if available
-    if (m_backgroundTexture) {
-        sf::Sprite bg(*m_backgroundTexture);
-        // scale background to window size if necessary
-        auto winSize = m_window.getSize();
-        sf::Vector2f texSize(static_cast<float>(m_backgroundTexture->getSize().x), static_cast<float>(m_backgroundTexture->getSize().y));
-        if (texSize.x > 0 && texSize.y > 0) {
-            float scaleX = static_cast<float>(winSize.x) / texSize.x;
-            float scaleY = static_cast<float>(winSize.y) / texSize.y;
-            bg.setScale(sf::Vector2f(scaleX, scaleY));
-        }
-        m_window.draw(bg);
-    }
-
-    m_window.display();
+    // This method is now intentionally empty: rendering is handled inside the main loop
 }
