@@ -1,10 +1,13 @@
 #include "Player.h"
 #include "Entity.h"
+#include "MovementHelper.h"
 #include <core/Logger.h>
 #include "../input/InputManager.h"
 #include "../input/Action.h"
+#include "../collisions/CollisionManager.h"
 #include <string>
 #include <cmath>
+#include <chrono>
 
 namespace entities {
 
@@ -27,6 +30,8 @@ Player::Player(Id id, const sf::Vector2f& position, const sf::Vector2f& size, fl
     shape_.setFillColor(sf::Color::Blue);
     shape_.setPosition(position_);
     Logger::instance().info("Player: created id=" + std::to_string(id_));
+    
+    creationTime_ = std::chrono::steady_clock::now();
 }
 
 Player::~Player() {
@@ -82,6 +87,28 @@ void Player::commitMove(const sf::Vector2f& newPosition) {
     shape_.setPosition(position_);
 }
 
+MovementHelper::MovementResult Player::computeAdvancedMove(float deltaTime, collisions::CollisionManager* collisionManager, MovementHelper::CollisionMode mode) {
+    sf::Vector2f intendedPosition = computeIntendedMove(deltaTime);
+    return MovementHelper::computeMovement(this, intendedPosition, collisionManager, mode);
+}
+
+void Player::commitAdvancedMove(const MovementHelper::MovementResult& moveResult) {
+    sf::Vector2f oldPosition = position_;
+    position_ = moveResult.finalPosition;
+    shape_.setPosition(position_);
+    
+    // Log collision details
+    if (moveResult.collisionOccurred) {
+        if (moveResult.didSlide) {
+            Logger::instance().info("[Player] id=" + std::to_string(id_) + " slid to position (" + 
+                std::to_string(position_.x) + "," + std::to_string(position_.y) + ")");
+        } else if (moveResult.wasBlocked) {
+            Logger::instance().info("[Player] id=" + std::to_string(id_) + " movement blocked at (" + 
+                std::to_string(position_.x) + "," + std::to_string(position_.y) + ")");
+        }
+    }
+}
+
 void Player::applyDamage(int amount) {
     health_ -= amount;
     Logger::instance().info("[Player] id=" + std::to_string(id_) + " took " + std::to_string(amount) + " damage, health=" + std::to_string(health_));
@@ -92,6 +119,29 @@ void Player::applyDamage(int amount) {
     }
 }
 
+void Player::setHealth(int health) {
+    int oldHealth = health_;
+    health_ = std::max(0, health); // Ensure health doesn't go negative
+    if (oldHealth != health_) {
+        Logger::instance().info("[Player] id=" + std::to_string(id_) + " health changed from " + std::to_string(oldHealth) + " to " + std::to_string(health_));
+        
+        // Update state based on new health
+        if (health_ <= 0) {
+            state_ = State::Dead;
+            Logger::instance().info("[Player] id=" + std::to_string(id_) + " died due to health restoration");
+        } else if (state_ == State::Dead && health_ > 0) {
+            state_ = State::Idle;
+            Logger::instance().info("[Player] id=" + std::to_string(id_) + " revived from dead state");
+        }
+    }
+}
+
+void Player::setPosition(const sf::Vector2f& position) noexcept {
+    Entity::setPosition(position);
+    shape_.setPosition(position_);
+    Logger::instance().info("[Player] id=" + std::to_string(id_) + " position set to (" + std::to_string(position.x) + "," + std::to_string(position.y) + ")");
+}
+
 void Player::render(sf::RenderWindow& window) {
     window.draw(shape_);
 }
@@ -99,6 +149,14 @@ void Player::render(sf::RenderWindow& window) {
 void Player::onItemCollected(Id itemId) {
     inventoryCount_++;
     Logger::instance().info("[Player] Collected item id=" + std::to_string(itemId) + ", total=" + std::to_string(inventoryCount_));
+}
+
+void Player::onPuzzleSolved(Id puzzleId) {
+    Logger::instance().info("[Player] Solved puzzle id=" + std::to_string(puzzleId));
+}
+
+void Player::onEnemyEncounter(Id enemyId) {
+    Logger::instance().info("[Player] Encountered enemy id=" + std::to_string(enemyId));
 }
 
 } // namespace entities

@@ -81,3 +81,48 @@ set_target_properties(GameplayTests PROPERTIES
     CXX_STANDARD 17
     CXX_STANDARD_REQUIRED ON
 )
+
+# Add Entity tests
+add_executable(EntityTests
+    entities/EntityTests.cpp
+    # Add the actual source files we're testing
+    ../src/entities/Entity.cpp
+    ../src/entities/EntityManager.cpp
+    ../src/entities/Player.cpp
+    ../src/entities/MovementHelper.cpp
+    # ../src/entities/EntityTelemetry.cpp  # Disabled due to SFML compatibility
+    ../src/entities/EntityDebug.cpp
+    ../src/collisions/CollisionManager.cpp
+    ../src/collisions/CollisionBox.cpp
+    ../src/core/Logger.cpp
+    ../src/core/GameState.h
+    ../src/scene/SaveIntegration.cpp
+    ../src/gameplay/ItemManager.cpp
+    ../src/gameplay/PuzzleManager.cpp
+    ../src/gameplay/Item.cpp
+    ../src/gameplay/Puzzle.cpp
+    ../src/input/InputManager.cpp
+    ../src/ui/UIManager.cpp
+    ../src/ui/Menu.cpp
+)
+
+# Include directories for entity tests
+target_include_directories(EntityTests PRIVATE 
+    ${CMAKE_SOURCE_DIR}/src
+    ${CMAKE_SOURCE_DIR}/tests
+)
+
+# Link libraries for entity tests
+target_link_libraries(EntityTests PRIVATE 
+    SFML::Graphics 
+    SFML::Window 
+    SFML::System 
+    SFML::Audio
+    nlohmann_json::nlohmann_json
+)
+
+# Set C++ standard for entity tests
+set_target_properties(EntityTests PROPERTIES
+    CXX_STANDARD 17
+    CXX_STANDARD_REQUIRED ON
+)
