@@ -16,6 +16,9 @@ public:
     // Register or update a collider for an entity (uses owner's collisionLayer())
     void addCollider(entities::Entity* owner, const sf::FloatRect& bounds);
 
+    // Update collider bounds for an entity if it exists, otherwise add it
+    void updateColliderBounds(entities::Entity* owner, const sf::FloatRect& bounds);
+
     // Remove collider for an entity
     void removeCollider(entities::Entity* owner);
 

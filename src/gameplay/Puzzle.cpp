@@ -16,6 +16,18 @@ Puzzle::Puzzle(entities::Entity::Id id,
 {
     shape_.setPosition(position_);
     shape_.setFillColor(sf::Color(100, 100, 255, 200));
+    
+    // Bounds checking - warn if puzzle is placed outside reasonable bounds
+    constexpr float MAX_COORDINATE = 10000.f;
+    if (position_.x < -MAX_COORDINATE || position_.x > MAX_COORDINATE ||
+        position_.y < -MAX_COORDINATE || position_.y > MAX_COORDINATE) {
+        core::Logger::instance().warning(std::string("Puzzle created outside reasonable bounds: id=") + std::to_string(id) + 
+                                        ", position=(" + std::to_string(position_.x) + "," + std::to_string(position_.y) + ")");
+    }
+    
+    core::Logger::instance().info(std::string("Puzzle created: id=") + std::to_string(id) + 
+                                 ", steps=" + std::to_string(steps.size()) + 
+                                 ", position=(" + std::to_string(position_.x) + "," + std::to_string(position_.y) + ")");
 }
 
 Puzzle::~Puzzle() = default;
@@ -53,10 +65,24 @@ void Puzzle::render(sf::RenderWindow& window)
 
 bool Puzzle::markStepCompleted(std::size_t stepIndex)
 {
-    if (stepIndex >= completedSteps_.size()) return false;
-    if (completedSteps_[stepIndex]) return false; // already done
+    if (stepIndex >= completedSteps_.size()) {
+        core::Logger::instance().warning(std::string("Invalid step index for puzzle: id=") + std::to_string(id_) + 
+                                         ", stepIndex=" + std::to_string(stepIndex) + 
+                                         ", totalSteps=" + std::to_string(completedSteps_.size()));
+        return false;
+    }
+    if (completedSteps_[stepIndex]) {
+        core::Logger::instance().info(std::string("Step already completed for puzzle: id=") + std::to_string(id_) + 
+                                     ", stepIndex=" + std::to_string(stepIndex));
+        return false; // already done
+    }
     completedSteps_[stepIndex] = true;
-    core::Logger::instance().info(std::string("Puzzle step completed: puzzle=") + std::to_string(id_) + ", step=" + std::to_string(stepIndex));
+    
+    std::string stepName = stepIndex < steps_.size() ? steps_[stepIndex] : "Unknown";
+    core::Logger::instance().info(std::string("Puzzle step completed: puzzle=") + std::to_string(id_) + 
+                                 ", step=" + std::to_string(stepIndex) + 
+                                 ", stepName=" + stepName + 
+                                 ", position=(" + std::to_string(position_.x) + "," + std::to_string(position_.y) + ")");
     return checkCompletion();
 }
 

@@ -46,3 +46,38 @@ set_target_properties(InputManagerTests PROPERTIES
 # Register tests with CTest
 include(GoogleTest)
 gtest_discover_tests(InputManagerTests)
+
+# Add Gameplay tests
+add_executable(GameplayTests
+    gameplay/simple_main.cpp
+    gameplay/stubs.cpp
+    # Add the actual source files we're testing
+    ../src/gameplay/Item.cpp
+    ../src/gameplay/ItemManager.cpp
+    ../src/gameplay/Puzzle.cpp
+    ../src/gameplay/PuzzleManager.cpp
+    ../src/entities/Entity.cpp
+    ../src/collisions/CollisionManager.cpp
+    ../src/collisions/CollisionBox.cpp
+    ../src/core/Logger.cpp
+)
+
+# Include directories for gameplay tests
+target_include_directories(GameplayTests PRIVATE 
+    ${CMAKE_SOURCE_DIR}/src
+    ${CMAKE_SOURCE_DIR}/tests
+)
+
+# Link libraries for gameplay tests  
+target_link_libraries(GameplayTests PRIVATE 
+    SFML::Graphics 
+    SFML::Window 
+    SFML::System 
+    SFML::Audio
+)
+
+# Set C++ standard for gameplay tests
+set_target_properties(GameplayTests PROPERTIES
+    CXX_STANDARD 17
+    CXX_STANDARD_REQUIRED ON
+)

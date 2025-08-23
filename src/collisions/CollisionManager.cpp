@@ -25,6 +25,11 @@ void CollisionManager::addCollider(entities::Entity* owner, const sf::FloatRect&
     colliders_.back().setLayer(owner->collisionLayer());
 }
 
+void CollisionManager::updateColliderBounds(entities::Entity* owner, const sf::FloatRect& bounds) {
+    // This is just an alias for addCollider since it already handles updates
+    addCollider(owner, bounds);
+}
+
 void CollisionManager::removeCollider(entities::Entity* owner) {
     if (!owner) return;
     colliders_.erase(std::remove_if(colliders_.begin(), colliders_.end(), [owner](const CollisionBox& cb) {

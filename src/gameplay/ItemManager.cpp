@@ -5,12 +5,15 @@
 #include "PuzzleManager.h"
 #include <unordered_map>
 #include "../ui/UIManager.h"
+#include <fstream>
+#include <algorithm>
 
 using namespace gameplay;
 
 ItemManager::ItemManager(collisions::CollisionManager* collisionManager, ui::UIManager* uiManager)
     : collisionManager_(collisionManager)
     , uiManager_(uiManager)
+    , gameStartTime_(std::chrono::steady_clock::now())
 {
 }
 
@@ -21,6 +24,11 @@ void ItemManager::addItem(std::unique_ptr<Item> item)
     if (!item) return;
     // Ensure item's collision manager is set
     if (collisionManager_) item->setCollisionManager(collisionManager_);
+    
+    // Update statistics
+    stats_.totalItemsAdded++;
+    stats_.itemsByType[static_cast<int>(item->type())]++;
+    
     items_.push_back(std::move(item));
 }
 
@@ -38,11 +46,14 @@ void ItemManager::updateAll(float deltaTime)
     // Update each item
     for (auto& item : items_) {
         if (!item) continue;
-    bool wasCollected = item->isCollected();
-    item->update(deltaTime);
+        bool wasCollected = item->isCollected();
+        item->update(deltaTime);
+
+        // Skip interaction detection for collected or disabled items
+        if (item->isCollected() || item->isDisabled()) continue;
 
         // If we have a collision manager, check for colliders overlapping this item
-        if (collisionManager_ && !item->isCollected()) {
+        if (collisionManager_) {
             // Use the collision manager to find first collider for the item's bounds
             sf::FloatRect bounds(item->position(), item->size());
             // Only consider Player colliders for item pickup
@@ -55,6 +66,11 @@ void ItemManager::updateAll(float deltaTime)
                     // Notify UI manager if available and item was not previously collected
                     if (uiManager_ && !wasCollected && item->isCollected()) {
                         uiManager_->notifyItemCollected(item->id());
+                        // Update statistics
+                        stats_.totalItemsCollected++;
+                        auto elapsed = std::chrono::steady_clock::now() - gameStartTime_;
+                        auto seconds = std::chrono::duration_cast<std::chrono::seconds>(elapsed).count();
+                        stats_.averageCollectionTime = static_cast<float>(seconds) / stats_.totalItemsCollected;
                     }
                         // If bound to a puzzle step, mark the step completed
                         if (puzzleManager_ && !wasCollected && item->isCollected()) {
@@ -131,4 +147,85 @@ std::vector<Item*> ItemManager::allItems() const
     out.reserve(items_.size());
     for (const auto& up : items_) if (up) out.push_back(up.get());
     return out;
+}
+
+Item* ItemManager::getItemById(entities::Entity::Id id)
+{
+    auto it = std::find_if(items_.begin(), items_.end(), 
+        [id](const std::unique_ptr<Item>& item) { 
+            return item && item->id() == id; 
+        });
+    return (it != items_.end()) ? it->get() : nullptr;
+}
+
+void ItemManager::saveToJson(const std::string& filename) const
+{
+    try {
+        std::ofstream file(filename);
+        if (!file.is_open()) {
+            core::Logger::instance().error("Failed to open file for writing: " + filename);
+            return;
+        }
+
+        file << "{\n";
+        file << "  \"version\": 1,\n";
+        file << "  \"items\": [\n";
+        
+        bool first = true;
+        for (const auto& item : items_) {
+            if (!item) continue;
+            if (!first) file << ",\n";
+            first = false;
+            
+            file << "    {\n";
+            file << "      \"id\": " << item->id() << ",\n";
+            file << "      \"type\": " << static_cast<int>(item->type()) << ",\n";
+            file << "      \"position\": [" << item->position().x << ", " << item->position().y << "],\n";
+            file << "      \"size\": [" << item->size().x << ", " << item->size().y << "],\n";
+            file << "      \"collected\": " << (item->isCollected() ? "true" : "false") << "\n";
+            file << "    }";
+        }
+        
+        file << "\n  ],\n";
+        file << "  \"statistics\": {\n";
+        file << "    \"totalItemsAdded\": " << stats_.totalItemsAdded << ",\n";
+        file << "    \"totalItemsCollected\": " << stats_.totalItemsCollected << ",\n";
+        file << "    \"itemsByType\": [" << stats_.itemsByType[0] << ", " << stats_.itemsByType[1] << ", " << stats_.itemsByType[2] << "],\n";
+        file << "    \"averageCollectionTime\": " << stats_.averageCollectionTime << "\n";
+        file << "  }\n";
+        file << "}\n";
+        
+        core::Logger::instance().info("Items saved to: " + filename);
+    } catch (const std::exception& e) {
+        core::Logger::instance().error("Error saving items: " + std::string(e.what()));
+    }
+}
+
+bool ItemManager::loadFromJson(const std::string& filename)
+{
+    try {
+        std::ifstream file(filename);
+        if (!file.is_open()) {
+            core::Logger::instance().warning("Save file not found: " + filename);
+            return false;
+        }
+
+        // For now, just log that we would load - full JSON parsing would require nlohmann/json
+        core::Logger::instance().info("Loading items from: " + filename);
+        
+        // Clear existing items first
+        items_.clear();
+        
+        // Reset statistics
+        stats_ = Statistics{};
+        gameStartTime_ = std::chrono::steady_clock::now();
+        
+        // TODO: Implement full JSON parsing when nlohmann/json is available
+        core::Logger::instance().warning("JSON parsing not yet implemented - would need nlohmann/json library");
+        
+        return true;
+    } catch (const std::exception& e) {
+        core::Logger::instance().error("Error loading items: " + std::string(e.what()));
+        return false;
+    }
 }

@@ -5,6 +5,8 @@
 #include <vector>
 #include <memory>
 #include <unordered_set>
+#include <chrono>
+#include <string>
 #include <SFML/Graphics/RenderWindow.hpp>
 namespace ui { class UIManager; }
 
@@ -38,11 +40,25 @@ public:
     // Access to puzzles for serialization/integration
     std::vector<Puzzle*> allPuzzles() const;
 
+    // Statistics tracking
+    struct Statistics {
+        std::size_t totalPuzzlesAdded = 0;
+        std::size_t totalPuzzlesCompleted = 0;
+        float averageCompletionTime = 0.0f;
+    };
+    const Statistics& getStatistics() const { return stats_; }
+
+    // Serialization support
+    void saveToJson(const std::string& filename) const;
+    bool loadFromJson(const std::string& filename);
+
 private:
     std::vector<std::unique_ptr<Puzzle>> puzzles_;
     // Track which puzzles we've already logged as completed
     std::unordered_set<entities::Entity::Id> loggedCompleted_;
         ui::UIManager* uiManager_{nullptr};
+    Statistics stats_;
+    std::chrono::steady_clock::time_point gameStartTime_;
 };
 
 } // namespace gameplay

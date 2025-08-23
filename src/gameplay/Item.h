@@ -31,12 +31,21 @@ public:
     bool isCollected() const noexcept { return collected_; }
     ItemType type() const noexcept { return type_; }
 
+    // Animation support
+    bool isAnimating() const noexcept { return isAnimating_; }
+    void setDisabled(bool disabled) { disabled_ = disabled; }
+    bool isDisabled() const noexcept { return disabled_; }
+
     // Optional: attach or change collision manager after construction
     void setCollisionManager(collisions::CollisionManager* cm);
 
 private:
     ItemType type_;
     bool collected_;
+    bool disabled_{false};
+    bool isAnimating_{false};
+    float animationTime_{0.0f};
+    sf::Vector2f originalScale_{1.0f, 1.0f};
 
     sf::RectangleShape shape_;
     collisions::CollisionManager* collisionManager_;
