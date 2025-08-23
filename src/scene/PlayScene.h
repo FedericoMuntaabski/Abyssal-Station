@@ -25,6 +25,7 @@ private:
     sf::RectangleShape m_rect;
     sf::Vector2f m_velocity{0.f, 0.f};
     float m_speed{200.f};
+    // ...existing code...
 };
 
 } // namespace scene

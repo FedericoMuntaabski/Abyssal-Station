@@ -28,6 +28,7 @@ Archivos leídos / relevantes
 - `src/core/Game.h` / `src/core/Game.cpp` (modificados para integrar SceneManager y pruebas de assets)
 - `src/core/AssetManager.h` / `src/core/AssetManager.cpp`
 - `src/core/Logger.h` / `src/core/Logger.cpp`
+- `src/input/Action.h`, `src/input/InputManager.h`, `src/input/InputManager.cpp` (nuevo módulo de input integrado con core)
 - `src/core/Timer.h` / `src/core/Timer.cpp`
 - `src/main.cpp`
 
@@ -41,10 +42,20 @@ Componentes principales y estado actualizado
 - Nuevas responsabilidades añadidas: gestionar una instancia de `scene::SceneManager` y delegar eventos, update y render a la escena activa; mantener lógica de prueba para assets (background y audio demo) y mostrar FPS en el título.
 - Implementación relevante:
   - Se añadió `std::unique_ptr<scene::SceneManager> m_sceneManager;` en la clase `Game`.
+  - `Game::processEvents()` ahora reenvía eventos a `input::InputManager::getInstance().update(event)` además de a la escena actual. Esto permite centralizar y mapear entradas (WASD, Enter, Escape, P) a acciones del juego.
   - En `run()` se inicializa el `SceneManager`, se hace push de la `MenuScene` al inicio y se delegan eventos/updates/render a `m_sceneManager`.
   - `processEvents()` ahora reenvía eventos a la escena actual mediante `m_sceneManager->handleEvent(ev)`.
   - Se mantiene la búsqueda hacia arriba en el filesystem para localizar `assets/` cuando el exe se ejecuta desde `build/Release`.
 - Estado: Implementado y probado localmente: el ejecutable se genera en `build/Release/AbyssalStation.exe`, las escenas (Menu/Play) funcionan, y las transiciones (Enter/Escape) y movimiento en PlayScene están operativas.
+
+Input subsystem (nuevo)
+- `src/input/Action.h`: enum class `input::Action` con acciones básicas (MoveUp, MoveDown, MoveLeft, MoveRight, Confirm, Cancel, Pause).
+- `src/input/InputManager.{h,cpp}`: singleton que mapea `Action` a `sf::Keyboard::Key`, permite `bindKey`, mantiene `currentKeys` y `previousKeys`, y expone `isActionPressed`, `isActionJustPressed`, `isActionReleased`. Inicializa bindings por defecto (WASD + Enter + Escape + P) y usa `core::Logger` para loggear cambios de bindings.
+
+Integración y notas:
+- `Game` ahora reenvía eventos a `InputManager` para que escenas puedan consultar acciones a través de `InputManager::getInstance()` en lugar de leer teclas crudas.
+- `PlayScene` fue adaptado para usar `InputManager` y ya no consulta `sf::Keyboard::isKeyPressed` directamente.
+- Logging: `InputManager::bindKey` registra mensajes como "[Input] Acción MoveUp asignada a tecla W" usando `core::Logger`.
 
 2) Scene system (nuevo, integrado desde la carpeta `src/scene`)
 - Componentes añadidos:

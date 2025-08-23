@@ -2,6 +2,8 @@
 #include "SceneManager.h"
 #include "MenuScene.h"
 #include "../core/Logger.h"
+#include "../input/InputManager.h"
+#include "../input/Action.h"
 
 #include <cmath>
 
@@ -36,18 +38,24 @@ void PlayScene::handleEvent(sf::Event& event) {
 }
 
 void PlayScene::update(float dt) {
-    // Update velocity based on real-time keyboard state for smoother movement
+    // Update velocity based on mapped actions via InputManager
+    using input::InputManager;
+    using input::Action;
+
+    auto& im = InputManager::getInstance();
     m_velocity = {0.f, 0.f};
-    if (sf::Keyboard::isKeyPressed(sf::Keyboard::Key::Left))  m_velocity.x -= 1.f;
-    if (sf::Keyboard::isKeyPressed(sf::Keyboard::Key::Right)) m_velocity.x += 1.f;
-    if (sf::Keyboard::isKeyPressed(sf::Keyboard::Key::Up))    m_velocity.y -= 1.f;
-    if (sf::Keyboard::isKeyPressed(sf::Keyboard::Key::Down))  m_velocity.y += 1.f;
+    if (im.isActionPressed(Action::MoveLeft))  m_velocity.x -= 1.f;
+    if (im.isActionPressed(Action::MoveRight)) m_velocity.x += 1.f;
+    if (im.isActionPressed(Action::MoveUp))    m_velocity.y -= 1.f;
+    if (im.isActionPressed(Action::MoveDown))  m_velocity.y += 1.f;
 
     if (m_velocity.x != 0.f || m_velocity.y != 0.f) {
         // normalize
-    float len = std::sqrt(m_velocity.x * m_velocity.x + m_velocity.y * m_velocity.y);
+        float len = std::sqrt(m_velocity.x * m_velocity.x + m_velocity.y * m_velocity.y);
         m_velocity /= len;
         m_rect.move(m_velocity * m_speed * dt);
+
+    // ...existing code...
     }
 }
 

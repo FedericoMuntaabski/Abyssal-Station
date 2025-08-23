@@ -35,6 +35,9 @@ add_executable(AbyssalStation
     src/scene/SceneManager.h
     src/scene/MenuScene.h
     src/scene/PlayScene.h
+    # Input module
+    src/input/InputManager.cpp
+    src/input/InputManager.h
 )
 
 target_include_directories(AbyssalStation PRIVATE ${CMAKE_SOURCE_DIR}/src)

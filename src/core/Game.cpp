@@ -2,6 +2,7 @@
 #include "core/AssetManager.h"
 #include "../scene/SceneManager.h"
 #include "../scene/MenuScene.h"
+#include "../input/InputManager.h"
 #include <filesystem>
 #include <iostream>
 
@@ -176,6 +177,8 @@ void Game::processEvents()
             sf::Event ev = event;
             m_sceneManager->handleEvent(ev);
         }
+    // Forward event to InputManager for centralized input handling
+    input::InputManager::getInstance().update(event);
         // No player/AI/networking logic here per requirements
     }
 }
