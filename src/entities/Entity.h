@@ -22,6 +22,19 @@ public:
     const sf::Vector2f& size() const noexcept;
     void setSize(const sf::Vector2f& s) noexcept;
 
+    // Simple collision layer support (bitmask)
+    enum class Layer : std::uint32_t {
+        None = 0,
+        Default = 1 << 0,
+        Player = 1 << 1,
+        Enemy = 1 << 2,
+        Item = 1 << 3,
+        Wall = 1 << 4,
+    };
+
+    void setCollisionLayer(Layer l) noexcept { collisionLayer_ = static_cast<std::uint32_t>(l); }
+    std::uint32_t collisionLayer() const noexcept { return collisionLayer_; }
+
     // Game loop hooks - must be implemented by concrete entities
     virtual void update(float deltaTime) = 0;
     virtual void render(sf::RenderWindow& window) = 0;
@@ -30,7 +43,17 @@ protected:
     Id id_;
     sf::Vector2f position_;
     sf::Vector2f size_;
+    std::uint32_t collisionLayer_{static_cast<std::uint32_t>(Layer::Default)};
 };
+
+// Predefined masks for convenience
+static constexpr std::uint32_t kLayerMaskNone = 0u;
+static constexpr std::uint32_t kLayerMaskDefault = static_cast<std::uint32_t>(Entity::Layer::Default);
+static constexpr std::uint32_t kLayerMaskPlayer = static_cast<std::uint32_t>(Entity::Layer::Player);
+static constexpr std::uint32_t kLayerMaskEnemy = static_cast<std::uint32_t>(Entity::Layer::Enemy);
+static constexpr std::uint32_t kLayerMaskItem = static_cast<std::uint32_t>(Entity::Layer::Item);
+static constexpr std::uint32_t kLayerMaskWall = static_cast<std::uint32_t>(Entity::Layer::Wall);
+static constexpr std::uint32_t kLayerMaskAll = 0xFFFFFFFFu;
 
 } // namespace entities
 

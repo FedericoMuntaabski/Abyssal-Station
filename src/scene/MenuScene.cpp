@@ -2,6 +2,7 @@
 #include "SceneManager.h"
 #include "PlayScene.h"
 #include "../core/Logger.h"
+#include "../core/FontHelper.h"
 
 #include <utility>
 #include <filesystem>
@@ -31,52 +32,14 @@ void MenuScene::onEnter() {
         return std::string();
     };
 
-    std::string fontPath;
-    // Common locations
-    fontPath = findUp("assets/fonts/arial.ttf");
-    if (fontPath.empty()) fontPath = findUp("assets/textures/arial.ttf");
-
-    // Try any ttf/otf in assets/fonts
-    if (fontPath.empty()) {
-        fs::path p = fs::current_path();
-        for (int i = 0; i < 8 && !fontPath.size(); ++i) {
-            fs::path candDir = p / "assets" / "fonts";
-            if (fs::exists(candDir) && fs::is_directory(candDir)) {
-                for (auto &entry : fs::directory_iterator(candDir)) {
-                    if (!entry.is_regular_file()) continue;
-                    auto ext = entry.path().extension().string();
-                    if (ext == ".ttf" || ext == ".otf") { fontPath = entry.path().string(); break; }
-                }
-            }
-            if (p.has_parent_path()) p = p.parent_path(); else break;
-        }
-    }
-
-#ifdef _WIN32
-    if (fontPath.empty()) {
-        // Use _dupenv_s to avoid MSVC deprecation warning for getenv
-        char* windir = nullptr;
-        size_t len = 0;
-        if (_dupenv_s(&windir, &len, "WINDIR") == 0 && windir) {
-            fs::path winFont = fs::path(windir) / "Fonts" / "arial.ttf";
-            if (fs::exists(winFont)) fontPath = winFont.string();
-        }
-        if (windir) free(windir);
-    }
-#endif
-
-    if (!fontPath.empty()) {
-        Logger::instance().info(std::string("MenuScene: attempting to open font: ") + fontPath);
-        if (m_font.openFromFile(fontPath)) {
-            m_fontLoaded = true;
-            m_text = std::make_unique<sf::Text>(m_font, "Presione Enter para jugar", 24);
-            m_text->setFillColor(sf::Color::White);
-            m_text->setPosition(sf::Vector2f(100.f, 100.f));
-        } else {
-            Logger::instance().warning(std::string("MenuScene: failed to open font file: ") + fontPath);
-        }
+    // Use common helper to find and load a font
+    if (core::loadBestFont(m_font)) {
+        m_fontLoaded = true;
+        m_text = std::make_unique<sf::Text>(m_font, "Presione Enter para jugar", 24);
+        m_text->setFillColor(sf::Color::White);
+        m_text->setPosition(sf::Vector2f(100.f, 100.f));
     } else {
-        Logger::instance().warning("MenuScene: no font file found (looked for assets/fonts/*.ttf, assets/textures/arial.ttf, and Windows fonts)");
+        Logger::instance().warning("MenuScene: failed to load a font via FontHelper");
     }
 
     Logger::instance().info("MenuScene: onEnter");

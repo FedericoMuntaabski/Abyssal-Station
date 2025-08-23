@@ -4,6 +4,8 @@
 #include "Scene.h"
 #include <SFML/Graphics.hpp>
 #include "../ai/EnemyManager.h"
+#include "../gameplay/ItemManager.h"
+#include "../gameplay/PuzzleManager.h"
 
 namespace scene { class SceneManager; }
 namespace ui { class UIManager; }
@@ -39,6 +41,18 @@ private:
     entities::Player* m_player{nullptr};
     // Enemy manager for AI planning
     std::unique_ptr<ai::EnemyManager> m_enemyManager;
+    // Gameplay managers
+    std::unique_ptr<gameplay::ItemManager> m_itemManager;
+    std::unique_ptr<gameplay::PuzzleManager> m_puzzleManager;
+    // Interaction hint state
+    bool m_showInteractHint{false};
+    uint32_t m_nearbyItemId{0u};
+    sf::Font m_hintFont;
+    // icon for interaction hint (optional)
+    sf::Texture m_hintTexture;
+    std::unique_ptr<sf::Sprite> m_hintSprite;
+    float m_hintPulseTimer{0.f};
+    std::unique_ptr<sf::Text> m_hintText; // kept as fallback if icon missing
 };
 
 } // namespace scene

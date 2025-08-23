@@ -21,6 +21,8 @@ static const char* stateToString(Player::State s) {
 
 Player::Player(Id id, const sf::Vector2f& position, const sf::Vector2f& size, float speed, int health)
     : Entity(id, position, size), speed_(speed), health_(health), state_(State::Idle), velocity_(0.f,0.f) {
+    // ensure player sits on Player collision layer
+    setCollisionLayer(Layer::Player);
     shape_.setSize(size_);
     shape_.setFillColor(sf::Color::Blue);
     shape_.setPosition(position_);
@@ -92,6 +94,11 @@ void Player::applyDamage(int amount) {
 
 void Player::render(sf::RenderWindow& window) {
     window.draw(shape_);
+}
+
+void Player::onItemCollected(Id itemId) {
+    inventoryCount_++;
+    Logger::instance().info("[Player] Collected item id=" + std::to_string(itemId) + ", total=" + std::to_string(inventoryCount_));
 }
 
 } // namespace entities

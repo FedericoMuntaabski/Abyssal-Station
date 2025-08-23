@@ -12,8 +12,10 @@ Checklist de lo incluido
 
 Archivos relevantes
 - `src/entities/Entity.h` / `src/entities/Entity.cpp` — clase base abstracta.
+- `src/entities/Entity.h` / `src/entities/Entity.cpp` — clase base abstracta. Ahora incluye soporte para "collision layers" (enum Layer y máscaras predefinidas) y almacenamiento de `collisionLayer_` por entidad.
 - `src/entities/EntityManager.h` / `src/entities/EntityManager.cpp` — gestor de entidades (vector de `unique_ptr`). Ahora notifica a `CollisionManager` para añadir/actualizar/remover colliders.
 - `src/entities/Player.h` / `src/entities/Player.cpp` — implementación concreta de jugador con nuevo API de movimiento previsto (compute/commit).
+ - `src/entities/Player.h` / `src/entities/Player.cpp` — implementación concreta de jugador con nuevo API de movimiento previsto (compute/commit). Se añadió `onItemCollected(Entity::Id)` y `inventoryCount_` para seguimiento simple de items recogidos.
  - `src/entities/Player.h` / `src/entities/Player.cpp` — implementación concreta de jugador con nuevo API de movimiento previsto (compute/commit).
 
 Nuevas integraciones relacionadas con IA
@@ -32,6 +34,7 @@ Cambios en `PlayScene` y flujo de autoridad
 
 Notas sobre ownership y colisiones
 - `EntityManager` sigue siendo la fuente de la verdad para la propiedad de entidades (almacena `std::unique_ptr<Entity>`). `EnemyManager` solo mantiene referencias no propietarias para coordinar IA.
+ - `EntityManager` sigue siendo la fuente de la verdad para la propiedad de entidades (almacena `std::unique_ptr<Entity>`). Además, cuando registra colliders copia la `collisionLayer()` de la entidad al `CollisionBox` para permitir filtrado por capas en las consultas. `EnemyManager` solo mantiene referencias no propietarias para coordinar IA.
 - `EnemyManager::commitAllMoves` reutiliza `CollisionManager::firstColliderForBounds` para validar cada movimiento antes de confirmar.
 
 IA, visión y ataques

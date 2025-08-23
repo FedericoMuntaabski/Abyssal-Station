@@ -31,7 +31,7 @@ void EnemyManager::commitAllMoves(collisions::CollisionManager* cm) {
         sf::FloatRect testBounds;
         testBounds.position.x = intended.x; testBounds.position.y = intended.y;
         testBounds.size.x = e->size().x; testBounds.size.y = e->size().y;
-        auto blocker = cm ? cm->firstColliderForBounds(testBounds, e) : nullptr;
+    auto blocker = cm ? cm->firstColliderForBounds(testBounds, e, entities::kLayerMaskAll & ~entities::kLayerMaskItem) : nullptr;
         if (!blocker) {
             e->commitMove(intended);
         } else {

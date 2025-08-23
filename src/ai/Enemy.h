@@ -70,6 +70,8 @@ private:
 
     // Raw pointer is fine here - scene owns player lifetime
     entities::Player* targetPlayer_{nullptr};
+    // CollisionManager pointer (not owned) used for LOS checks and movement planning
+    collisions::CollisionManager* collisionManager_{nullptr};
 
     // Simple debug shape (not required for logic)
     sf::RectangleShape shape_;

@@ -14,6 +14,7 @@ enum class Action : std::uint8_t {
     MoveRight,
     Confirm,
     Cancel,
+    Interact,
     Pause
 };
 

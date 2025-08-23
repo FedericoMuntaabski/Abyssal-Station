@@ -26,6 +26,7 @@ add_executable(AbyssalStation
     src/core/Game.h
     src/core/AssetManager.cpp
     src/core/Logger.cpp
+    src/core/FontHelper.cpp
     src/core/Timer.cpp
     # Scene module sources
     src/scene/SceneManager.cpp
@@ -58,6 +59,13 @@ add_executable(AbyssalStation
     src/collisions/CollisionBox.cpp
     src/collisions/CollisionManager.cpp
     src/collisions/CollisionSystem.cpp
+    # Gameplay: items & puzzles
+    src/gameplay/Item.cpp
+    src/gameplay/ItemManager.cpp
+    src/gameplay/Puzzle.cpp
+    src/gameplay/PuzzleManager.cpp
+    # Debug scene for pickup test
+    src/scene/DebugPickupScene.cpp
     # UI module
     src/ui/Menu.cpp
     src/ui/MainMenu.cpp

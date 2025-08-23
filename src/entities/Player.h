@@ -35,6 +35,9 @@ public:
     // Apply damage to the player
     void applyDamage(int amount);
 
+    // Called when player collects an item
+    void onItemCollected(Id itemId);
+
 private:
     float speed_;
     int health_;
@@ -44,6 +47,7 @@ private:
     // Debug logging: interval (seconds) and accumulator
     float debugLogInterval_{0.5f};
     float debugLogTimer_{0.f};
+    int inventoryCount_{0};
 };
 
 } // namespace entities

@@ -2,6 +2,7 @@
 #include "SceneManager.h"
 #include "MenuScene.h"
 #include "../core/Logger.h"
+#include "../core/FontHelper.h"
 #include "../input/InputManager.h"
 #include "../input/Action.h"
 #include "../entities/EntityManager.h"
@@ -15,7 +16,13 @@
 #include "../ui/PauseMenu.h"
 #include "../ui/OptionsMenu.h"
 
+#include "../gameplay/Item.h"
+#include "../gameplay/ItemManager.h"
+#include "../gameplay/Puzzle.h"
+#include "../gameplay/PuzzleManager.h"
+
 #include <cmath>
+#include <filesystem>
 
 namespace scene {
 
@@ -40,8 +47,8 @@ void PlayScene::onEnter() {
     m_collisionManager = std::make_unique<collisions::CollisionManager>();
     m_collisionSystem = std::make_unique<collisions::CollisionSystem>(*m_collisionManager);
     m_entityManager->setCollisionManager(m_collisionManager.get());
-    // create player with id 1 and position matching the rectangle
-    auto player = std::make_unique<entities::Player>(1u, m_rect.getPosition(), m_rect.getSize());
+    // create player with id 1 and position matching the rectangle, but smaller size
+    auto player = std::make_unique<entities::Player>(1u, m_rect.getPosition(), sf::Vector2f(20.f, 20.f));
     m_player = player.get();
     m_entityManager->addEntity(std::move(player));
 
@@ -83,6 +90,76 @@ void PlayScene::onEnter() {
     ai::Enemy* enemy2Ptr = enemy2.get();
     m_entityManager->addEntity(std::move(enemy2));
     m_enemyManager->addEnemyPointer(enemy2Ptr);
+
+    // --- Gameplay: ItemManager & PuzzleManager example setup ---
+    m_itemManager = std::make_unique<gameplay::ItemManager>(m_collisionManager.get(), m_uiManager.get());
+    m_puzzleManager = std::make_unique<gameplay::PuzzleManager>();
+    m_puzzleManager->setUIManager(m_uiManager.get());
+
+    // Load resources for interaction hint: try an icon first, fallback to font+text via FontHelper
+    bool loadedIcon = false;
+    std::string iconPath = "assets/textures/interaction_icon.png";
+    if (std::filesystem::exists(iconPath)) {
+        if (m_hintTexture.loadFromFile(iconPath)) {
+            m_hintSprite = std::make_unique<sf::Sprite>(m_hintTexture);
+            m_hintSprite->setOrigin(sf::Vector2f((float)m_hintTexture.getSize().x * 0.5f, (float)m_hintTexture.getSize().y * 0.5f));
+            loadedIcon = true;
+        }
+    }
+
+    if (!loadedIcon) {
+        if (core::loadBestFont(m_hintFont)) {
+            m_hintText = std::make_unique<sf::Text>(m_hintFont, "Press E", 14u);
+            m_hintText->setFillColor(sf::Color::White);
+        } else {
+            Logger::instance().warning("PlayScene: failed to load hint icon and font fallback");
+        }
+    }
+
+    // Add two example items:
+    // 1) one 50 px below the player's spawn
+    sf::Vector2f playerItemPos = m_player ? (m_player->position() + sf::Vector2f(0.f, 50.f)) : sf::Vector2f(m_rect.getPosition().x, m_rect.getPosition().y + 50.f);
+    auto playerKey = std::make_unique<gameplay::Item>(10u, playerItemPos, sf::Vector2f(16.f,16.f), gameplay::ItemType::Key, m_collisionManager.get());
+    m_itemManager->addItem(std::move(playerKey));
+
+    // 2) one at the position of the example enemy (spawned earlier)
+    sf::Vector2f enemyItemPos = enemyPos; // place at enemy position
+    auto enemyKey = std::make_unique<gameplay::Item>(11u, enemyItemPos, sf::Vector2f(16.f,16.f), gameplay::ItemType::Collectible, m_collisionManager.get());
+    m_itemManager->addItem(std::move(enemyKey));
+
+    // Additional dispersed items across the scene
+    std::vector<sf::Vector2f> extraPositions = {
+        sf::Vector2f(120.f, 200.f),
+        sf::Vector2f(300.f, 80.f),
+        sf::Vector2f(480.f, 240.f),
+        sf::Vector2f(560.f, 160.f)
+    };
+    uint32_t extraId = 100;
+    for (const auto& p : extraPositions) {
+        auto it = std::make_unique<gameplay::Item>(extraId++, p, sf::Vector2f(12.f,12.f), gameplay::ItemType::Collectible, m_collisionManager.get());
+        m_itemManager->addItem(std::move(it));
+    }
+
+    // Wire item->puzzle binding for demo: picking player-item id=10 completes puzzle id=20 step 0
+    m_itemManager->setPuzzleManager(m_puzzleManager.get());
+    m_itemManager->bindItemToPuzzleStep(10u, 20u, 0u);
+
+    // Add example puzzle that requires 1 step (collect key)
+    std::vector<std::string> steps;
+    steps.push_back("HasKey");
+    auto puzzle = std::make_unique<gameplay::Puzzle>(20u, sf::Vector2f(m_rect.getPosition().x + 300.f, m_rect.getPosition().y), sf::Vector2f(48.f,48.f), steps);
+    m_puzzleManager->registerPuzzle(std::move(puzzle));
+
+    // --- Spawn an item for each enemy automatically ---
+    uint32_t spawnItemId = 200;
+    if (m_enemyManager) {
+        for (auto enemyPtr : m_enemyManager->enemies()) {
+            if (!enemyPtr) continue;
+            sf::Vector2f spawnPos = enemyPtr->position();
+            auto it = std::make_unique<gameplay::Item>(spawnItemId++, spawnPos, sf::Vector2f(16.f, 16.f), gameplay::ItemType::Collectible, m_collisionManager.get());
+            m_itemManager->addItem(std::move(it));
+        }
+    }
 }
 
 void PlayScene::onExit() {
@@ -182,20 +259,79 @@ void PlayScene::update(float dt) {
     }
 
     // Sync debug rectangle to player position so visible cube follows authoritative player
-    if (m_player) m_rect.setPosition(m_player->position());
+    // Do not sync or draw debug rectangle on top of player; player entity is rendered separately
+
+    // Update gameplay managers
+    if (m_itemManager) m_itemManager->updateAll(dt);
+    if (m_puzzleManager) m_puzzleManager->updateAll(dt);
+
+    // Detect nearby item for explicit interaction (player-only)
+    m_showInteractHint = false;
+    m_nearbyItemId = 0u;
+    if (m_collisionManager && m_player && m_itemManager) {
+        // Expand player's bounds slightly to define interaction range
+    sf::FloatRect playerBounds;
+    playerBounds.position = m_player->position();
+    playerBounds.size = m_player->size();
+    const float interactPadding = 8.f;
+    playerBounds.position.x -= interactPadding;
+    playerBounds.position.y -= interactPadding;
+    playerBounds.size.x += interactPadding * 2.f;
+    playerBounds.size.y += interactPadding * 2.f;
+
+        // Query collision manager for any item collider overlapping this area
+        auto collider = m_collisionManager->firstColliderForBounds(playerBounds, m_player, entities::kLayerMaskItem);
+        if (collider) {
+            m_showInteractHint = true;
+            m_nearbyItemId = collider->id();
+            // If player pressed Interact, trigger centralized interaction
+            using input::InputManager;
+            using input::Action;
+            if (InputManager::getInstance().isActionJustPressed(Action::Interact)) {
+                m_itemManager->interactWithItem(m_nearbyItemId, m_player);
+            }
+        }
+    }
 
     // Update UI manager (menus input & logic)
     if (m_uiManager) m_uiManager->update(dt);
 }
 
 void PlayScene::render(sf::RenderWindow& window) {
-    // Scene-local debug rectangle
-    window.draw(m_rect);
+    // Scene-local debug rectangle (hidden)
+    // ...existing code... (m_rect intentionally not drawn so player entity is visible)
 
     if (m_entityManager) m_entityManager->renderAll(window);
 
+    // Render items and puzzles
+    if (m_itemManager) m_itemManager->renderAll(window);
+    if (m_puzzleManager) m_puzzleManager->renderAll(window);
+
     // Render menus on top
     if (m_uiManager) m_uiManager->render(window);
+
+    // Render interaction hint above player if available (sprite preferred)
+    if (m_showInteractHint && m_player) {
+        sf::Vector2f hintPos = m_player->position();
+        hintPos.y -= 18.f; // above player
+        // Pulse timer advance
+        m_hintPulseTimer += 0.016f;
+        float pulse = 1.0f + 0.1f * std::sin(m_hintPulseTimer * 8.0f);
+    if (m_hintSprite) {
+            m_hintSprite->setPosition(hintPos + sf::Vector2f(m_player->size().x * 0.5f, 0.f));
+            m_hintSprite->setScale(sf::Vector2f(pulse, pulse));
+            window.draw(*m_hintSprite);
+        } else if (m_hintText) {
+            m_hintText->setPosition(hintPos + sf::Vector2f(m_player->size().x * 0.5f, 0.f));
+            m_hintText->setScale(sf::Vector2f(pulse, pulse));
+            window.draw(*m_hintText);
+        } else {
+            sf::CircleShape circ(6.f * pulse);
+            circ.setFillColor(sf::Color::Yellow);
+            circ.setPosition(hintPos + sf::Vector2f(m_player->size().x * 0.5f - 6.f, -6.f));
+            window.draw(circ);
+        }
+    }
 }
 
 } // namespace scene
