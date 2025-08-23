@@ -7,6 +7,7 @@
 #include "../entities/EntityManager.h"
 #include "../entities/Player.h"
 #include "../entities/Wall.h"
+#include "../ai/Enemy.h"
 #include "../collisions/CollisionManager.h"
 #include "../collisions/CollisionSystem.h"
 
@@ -42,6 +43,39 @@ void PlayScene::onEnter() {
     // Move wall a bit further to the right (X) and slightly lower (Y) from previous placement
     auto wall = std::make_unique<entities::Wall>(2u, sf::Vector2f(480.f, 170.f), sf::Vector2f(50.f, 150.f));
     m_entityManager->addEntity(std::move(wall));
+
+    // Add an enemy to the right of the wall on the X axis and offset away from the wall (~60 px)
+    float enemyOffsetFromWall = 60.f;
+    float enemyWidth = 32.f;
+    // wall's right X = wall.position.x + wall.size.x = 480 + 50 = 530
+    float wallRightX = 480.f + 50.f;
+    sf::Vector2f enemyPos(wallRightX + enemyOffsetFromWall, 200.f);
+    // provide simple patrol points so the enemy will patrol visibly to the right
+    std::vector<sf::Vector2f> patrolPoints;
+    patrolPoints.push_back(enemyPos);
+    patrolPoints.push_back(sf::Vector2f(enemyPos.x + 120.f, enemyPos.y));
+    auto enemy = std::make_unique<ai::Enemy>(3u, enemyPos, sf::Vector2f(enemyWidth, 32.f), 100.f, 200.f, 24.f, patrolPoints);
+    // Attach player target so enemy can chase
+    enemy->setTargetPlayer(m_player);
+    m_entityManager->addEntity(std::move(enemy));
+    // Create EnemyManager and register enemies for centralized planning
+    m_enemyManager = std::make_unique<ai::EnemyManager>();
+    // Register the previously added enemy (id=3) - find it in entity manager
+    if (auto e3 = dynamic_cast<ai::Enemy*>(m_entityManager->getEntity(3u))) {
+        m_enemyManager->addEnemyPointer(e3);
+    }
+
+    // Spawn a second enemy to test multiple AI interactions (id=4) positioned further right
+    sf::Vector2f enemy2Pos(enemyPos.x + 200.f, enemyPos.y + 20.f);
+    std::vector<sf::Vector2f> patrol2;
+    patrol2.push_back(enemy2Pos);
+    patrol2.push_back(sf::Vector2f(enemy2Pos.x + 100.f, enemy2Pos.y));
+    auto enemy2 = std::make_unique<ai::Enemy>(4u, enemy2Pos, sf::Vector2f(enemyWidth, 32.f), 80.f, 180.f, 24.f, patrol2);
+    enemy2->setTargetPlayer(m_player);
+    // Keep ownership in EntityManager, but register pointer in EnemyManager
+    ai::Enemy* enemy2Ptr = enemy2.get();
+    m_entityManager->addEntity(std::move(enemy2));
+    m_enemyManager->addEnemyPointer(enemy2Ptr);
 }
 
 void PlayScene::onExit() {
@@ -106,6 +140,22 @@ void PlayScene::update(float dt) {
     // Resolve any residual collisions as a fallback
     if (m_collisionSystem && m_player) {
         m_collisionSystem->resolve(m_player, dt);
+    }
+
+    // Centralized enemy planning & commit via EnemyManager
+    if (m_enemyManager) {
+        // Run FSM updates for all enemies
+        if (m_player) m_enemyManager->updateAll(dt, m_player->position());
+        // Plan movement (collision-aware)
+        m_enemyManager->planAllMovement(dt, m_collisionManager.get());
+        // Commit moves after collision checks
+        m_enemyManager->commitAllMoves(m_collisionManager.get());
+        // Resolve residual collisions for each enemy
+        if (m_collisionSystem) {
+            for (auto& ep : m_enemyManager->enemies()) {
+                if (ep) m_collisionSystem->resolve(ep, dt);
+            }
+        }
     }
 
     // Sync debug rectangle to player position so visible cube follows authoritative player

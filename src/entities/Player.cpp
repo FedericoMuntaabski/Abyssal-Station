@@ -80,6 +80,16 @@ void Player::commitMove(const sf::Vector2f& newPosition) {
     shape_.setPosition(position_);
 }
 
+void Player::applyDamage(int amount) {
+    health_ -= amount;
+    Logger::instance().info("[Player] id=" + std::to_string(id_) + " took " + std::to_string(amount) + " damage, health=" + std::to_string(health_));
+    if (health_ <= 0) {
+        health_ = 0;
+        state_ = State::Dead;
+        Logger::instance().info("[Player] id=" + std::to_string(id_) + " is dead");
+    }
+}
+
 void Player::render(sf::RenderWindow& window) {
     window.draw(shape_);
 }

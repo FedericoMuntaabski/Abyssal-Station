@@ -3,6 +3,7 @@
 
 #include "Scene.h"
 #include <SFML/Graphics.hpp>
+#include "../ai/EnemyManager.h"
 
 namespace scene { class SceneManager; }
 
@@ -34,6 +35,8 @@ private:
     std::unique_ptr<collisions::CollisionSystem> m_collisionSystem;
     // keep a raw pointer to player if needed
     entities::Player* m_player{nullptr};
+    // Enemy manager for AI planning
+    std::unique_ptr<ai::EnemyManager> m_enemyManager;
 };
 
 } // namespace scene

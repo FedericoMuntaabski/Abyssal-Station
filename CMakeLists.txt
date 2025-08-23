@@ -48,6 +48,12 @@ add_executable(AbyssalStation
     src/entities/EntityManager.cpp
     src/entities/EntityManager.h
 
+    # AI module
+    src/ai/Enemy.cpp
+    src/ai/Enemy.h
+    src/ai/EnemyManager.cpp
+    src/ai/EnemyManager.h
+
     # Collisions module
     src/collisions/CollisionBox.cpp
     src/collisions/CollisionManager.cpp
