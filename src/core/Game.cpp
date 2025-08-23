@@ -9,18 +9,9 @@
 Game::Game(unsigned int width, unsigned int height, const std::string& title)
     : m_window(), m_clock(), m_isRunning(false)
 {
-    // Load config (fallbacks handled inside ConfigManager)
+    // Initialize SFML window
     try {
-        m_configManager.loadConfig();
-    } catch (...) {
-        // ignore, ConfigManager logs internally
-    }
-
-    // Initialize SFML window using config resolution if available
-    try {
-        unsigned int w = static_cast<unsigned int>(m_configManager.width());
-        unsigned int h = static_cast<unsigned int>(m_configManager.height());
-        initWindow(w, h, title);
+        initWindow(width, height, title);
     } catch (const std::exception& e) {
         std::cerr << "Failed to initialize Game: " << e.what() << std::endl;
         throw;
@@ -73,10 +64,22 @@ Game::Game(unsigned int width, unsigned int height, const std::string& title)
     } catch (const std::exception& e) {
         std::cerr << "Asset loading error: " << e.what() << std::endl;
     }
+
+    // Try to load input bindings from config file, fall back to defaults if not found
+    auto& inputManager = input::InputManager::getInstance();
+    std::string bindingsPath = "config/input_bindings.json";
+    if (!inputManager.loadBindings(bindingsPath)) {
+        std::cerr << "Using default input bindings (config file not found or invalid)\n";
+    }
 }
 
 Game::~Game()
 {
+    // Save input bindings before shutdown
+    auto& inputManager = input::InputManager::getInstance();
+    std::string bindingsPath = "config/input_bindings.json";
+    inputManager.saveBindings(bindingsPath);
+
     // Ensure the window is closed
     if (m_window.isOpen()) {
         m_window.close();
@@ -112,9 +115,6 @@ void Game::run()
     // Initialize scene manager and push the initial MenuScene
     m_sceneManager = std::make_unique<scene::SceneManager>();
     m_sceneManager->push(std::make_unique<scene::MenuScene>(m_sceneManager.get()));
-
-    // Apply UI related configuration (notification duration etc.) if UIManager available in scenes later
-    // We will apply per-scene when they create their UIManager; ConfigManager::applyConfig can be called from scenes.
 
     while (m_isRunning && m_window.isOpen()) {
         // Calculate delta time

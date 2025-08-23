@@ -20,6 +20,13 @@ if(NOT SFML_FOUND)
     message(FATAL_ERROR "SFML (graphics, window, system) is required. Set SFML_DIR or use vcpkg.")
 endif()
 
+## Find nlohmann/json for input bindings serialization
+find_package(nlohmann_json CONFIG REQUIRED)
+if(NOT nlohmann_json_FOUND)
+    message(STATUS "nlohmann/json not found by CMake. Install via vcpkg: vcpkg install nlohmann-json")
+    message(FATAL_ERROR "nlohmann/json is required for input bindings serialization.")
+endif()
+
 add_executable(AbyssalStation
     src/main.cpp
     src/core/Game.cpp
@@ -78,10 +85,14 @@ add_executable(AbyssalStation
 )
 
 target_include_directories(AbyssalStation PRIVATE ${CMAKE_SOURCE_DIR}/src)
-target_link_libraries(AbyssalStation PRIVATE SFML::Graphics SFML::Window SFML::System SFML::Audio)
+target_link_libraries(AbyssalStation PRIVATE SFML::Graphics SFML::Window SFML::System SFML::Audio nlohmann_json::nlohmann_json)
 
 # Copy assets folder to the target directory after build so the executable can load resources using relative paths
 add_custom_command(TARGET AbyssalStation POST_BUILD
     COMMAND ${CMAKE_COMMAND} -E copy_directory
         ${CMAKE_SOURCE_DIR}/assets $<TARGET_FILE_DIR:AbyssalStation>/assets
 )
+
+# Enable testing and add test subdirectory
+enable_testing()
+add_subdirectory(tests)

@@ -33,24 +33,9 @@ void UIManager::notifyPuzzleCompleted(std::uint32_t id, sf::Color iconColor) {
 
 void UIManager::pushMenu(Menu* menu) {
     if (!menu) return;
-    // Store the menu first so it has an owner during activation. If activation
-    // throws, remove it and log the error instead of letting the app terminate.
-    try {
-        core::Logger::instance().info("UIManager: about to emplace new menu");
-    } catch(...) {}
+    menu->activate();
+    core::Logger::instance().info(std::string("UIManager: push menu ") + menu->name());
     m_menus.emplace_back(menu);
-    try {
-        try { core::Logger::instance().info(std::string("UIManager: activating menu instance at ") + std::to_string(reinterpret_cast<std::uintptr_t>(m_menus.back().get()))); } catch(...) {}
-        m_menus.back()->activate();
-        try { core::Logger::instance().info(std::string("UIManager: push menu ") + m_menus.back()->name()); } catch(...) {}
-        try { core::Logger::instance().info(std::string("UIManager: menu active state = ") + (m_menus.back()->isActive() ? "true" : "false")); } catch(...) {}
-    } catch (const std::exception& e) {
-        try { core::Logger::instance().error(std::string("UIManager: exception activating menu: ") + e.what()); } catch(...) {}
-        m_menus.pop_back();
-    } catch (...) {
-        try { core::Logger::instance().error("UIManager: unknown exception activating menu"); } catch(...) {}
-        m_menus.pop_back();
-    }
 }
 
 void UIManager::popMenu() {
@@ -80,37 +65,11 @@ bool UIManager::isAnyMenuActive() const noexcept {
 }
 
 void UIManager::update(float dt) {
-    try {
-    core::Logger::instance().info(std::string("UIManager: update start; menus=") + std::to_string(m_menus.size()));
     for (auto& m : m_menus) {
-        if (m && m->isActive()) {
-            try {
-                core::Logger::instance().info(std::string("UIManager: updating menu ") + m->name());
-            } catch(...) {}
-            try {
-                m->handleInput();
-            } catch (const std::exception& e) {
-                try { core::Logger::instance().error(std::string("UIManager: menu handleInput exception: ") + e.what()); } catch(...) {}
-                continue;
-            } catch (...) {
-                try { core::Logger::instance().error("UIManager: menu handleInput unknown exception"); } catch(...) {}
-                continue;
-            }
-
-            try {
-                m->update(dt);
-            } catch (const std::exception& e) {
-                try { core::Logger::instance().error(std::string("UIManager: menu update exception: ") + e.what()); } catch(...) {}
-            } catch (...) {
-                try { core::Logger::instance().error("UIManager: menu update unknown exception"); } catch(...) {}
-            }
+        if (m->isActive()) {
+            m->handleInput();
+            m->update(dt);
         }
-    }
-    core::Logger::instance().info("UIManager: update end");
-    } catch (const std::exception& e) {
-        try { core::Logger::instance().error(std::string("UIManager::update exception: ") + e.what()); } catch(...) {}
-    } catch (...) {
-        try { core::Logger::instance().error("UIManager::update unknown exception"); } catch(...) {}
     }
 
     // Advance notifications elapsed and remove expired
@@ -122,27 +81,10 @@ void UIManager::update(float dt) {
 }
 
 void UIManager::render(sf::RenderWindow& window) {
-    try {
-    core::Logger::instance().info(std::string("UIManager: render start; menus=") + std::to_string(m_menus.size()));
     for (auto& m : m_menus) {
-        if (m && m->isActive()) {
-            try {
-                core::Logger::instance().info(std::string("UIManager: rendering menu ") + m->name());
-            } catch(...) {}
-            try {
-                m->render(window);
-            } catch (const std::exception& e) {
-                try { core::Logger::instance().error(std::string("UIManager: menu render exception: ") + e.what()); } catch(...) {}
-            } catch (...) {
-                try { core::Logger::instance().error("UIManager: menu render unknown exception"); } catch(...) {}
-            }
+        if (m->isActive()) {
+            m->render(window);
         }
-    }
-    core::Logger::instance().info("UIManager: render end");
-    } catch (const std::exception& e) {
-        try { core::Logger::instance().error(std::string("UIManager::render exception: ") + e.what()); } catch(...) {}
-    } catch (...) {
-        try { core::Logger::instance().error("UIManager::render unknown exception"); } catch(...) {}
     }
 
     // Render transient notifications on top-left with fade-out

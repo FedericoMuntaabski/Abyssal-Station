@@ -37,7 +37,18 @@ private:
     // Controls remapping
     bool m_waitingForRemap{false};
     input::Action m_actionToRemap{input::Action::MoveUp};
-    std::vector<input::Action> m_actionsToShow{input::Action::MoveUp, input::Action::MoveDown, input::Action::MoveLeft, input::Action::MoveRight, input::Action::Confirm, input::Action::Cancel};
+    std::vector<input::Action> m_actionsToShow{
+        input::Action::MoveUp, 
+        input::Action::MoveDown, 
+        input::Action::MoveLeft, 
+        input::Action::MoveRight, 
+        input::Action::Confirm, 
+        input::Action::Cancel,
+        input::Action::Interact,
+        input::Action::Pause
+    };
+    std::size_t m_selectedAction{0}; // Track which action is selected for remapping
+    bool m_inControlsMode{false}; // Whether we're in controls remapping mode
 };
 
 } // namespace ui
