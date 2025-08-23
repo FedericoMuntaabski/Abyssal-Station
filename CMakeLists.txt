@@ -38,6 +38,20 @@ add_executable(AbyssalStation
     # Input module
     src/input/InputManager.cpp
     src/input/InputManager.h
+    # Entities
+    src/entities/Entity.cpp
+    src/entities/Entity.h
+    src/entities/Player.cpp
+    src/entities/Player.h
+    src/entities/Wall.cpp
+    src/entities/Wall.h
+    src/entities/EntityManager.cpp
+    src/entities/EntityManager.h
+
+    # Collisions module
+    src/collisions/CollisionBox.cpp
+    src/collisions/CollisionManager.cpp
+    src/collisions/CollisionSystem.cpp
 )
 
 target_include_directories(AbyssalStation PRIVATE ${CMAKE_SOURCE_DIR}/src)

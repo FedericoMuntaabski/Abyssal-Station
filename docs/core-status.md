@@ -1,16 +1,101 @@
-# Estado actual del Core (feature/core)
+# Estado actual del Core (consolidado)
 
 Resumen corto
-- Rama: `feature/core` (checkout realizado).
-- Objetivo: Documento guía que describe el estado actual del "core" (núcleo) del motor para orientar desarrollo futuro.
+- Rama actual de trabajo: `feature/Player` / `feature/scene` (cambios recientes integrados en `src/core`).
+- Objetivo: Documento que recoge el estado actual del núcleo del motor tras las últimas modificaciones: integración del sistema de escenas, nuevo subsistema de input, y ajustes en carga de assets y en el bucle principal (`Game`).
 
-Requisitos del encargo
-- [x] Cambiar a la rama `feature/core`. (Hecho)
-- [x] Generar un documento describiendo el estado actual del core. (Este archivo)
+Checklist de requisitos de esta adaptación
+- [x] Actualizar la descripción del `Game` para reflejar la delegación a `SceneManager`.
+- [x] Documentar el nuevo `input::InputManager` y su integración con escenas.
+- [x] Reflejar el estado de `AssetManager`, `Logger` y `Timer`.
 
-Archivos leídos
+Archivos revisados
 - `src/core/Game.h` / `src/core/Game.cpp`
 - `src/core/AssetManager.h` / `src/core/AssetManager.cpp`
+- `src/core/Logger.h` / `src/core/Logger.cpp`
+- `src/core/Timer.h` / `src/core/Timer.cpp`
+- `src/input/InputManager.h` / `src/input/InputManager.cpp`
+- `src/scene/` (Scene, SceneManager, MenuScene, PlayScene)
+
+Visión general del core
+
+Componentes principales y estado actualizado
+
+1) Game
+- Clase: `Game` — encapsula la ventana SFML y el bucle principal.
+- API pública: `Game(width, height, title)`, `run()`, `stop()` (bloqueante el `run`).
+- Cambios clave:
+  - `Game` crea y mantiene una instancia de `scene::SceneManager` y delega eventos, update y render a la escena activa.
+  - `processEvents()` reenvía eventos a `input::InputManager` y a la escena actual (`SceneManager::handleEvent`).
+  - Se añadió búsqueda robusta de la carpeta `assets/` ascendiendo el filesystem cuando el ejecutable corre desde `build/Release`.
+  - Soporte de FPS en el título para depuración.
+- Estado: Implementado y probado localmente; el ejecutable se construye en `build/Release/AbyssalStation.exe` y las escenas básicas (Menu/Play) funcionan y responden a entradas.
+
+2) Subsystema de Input
+- Archivos: `src/input/Action.h`, `src/input/InputManager.h/.cpp`.
+- Descripción: `InputManager` es un singleton que mapea `input::Action` a teclas (`sf::Keyboard::Key`), mantiene estado actual y previo, y expone consultas como `isActionPressed()` y `isActionJustPressed()`.
+- Integración: `Game` y las escenas usan `InputManager::getInstance()` en lugar de comprobar teclas crudas; `InputManager` inicializa bindings por defecto (WASD, Enter, Escape, P) y permite rebind.
+
+3) Sistema de escenas
+- Archivos: `src/scene/Scene.h`, `SceneManager.*`, `MenuScene.*`, `PlayScene.*`.
+- Funcionalidad: stack de escenas (push/pop/replace), delegación de eventos/update/render, hooks `onEnter()`/`onExit()` y logging de transiciones.
+- Integración con `Game`: `Game` crea el `SceneManager` y empuja `MenuScene` al inicio.
+
+4) AssetManager
+- Archivos: `src/core/AssetManager.h/.cpp`.
+- Estado: Singleton que carga texturas y buffers de sonido desde carpetas específicas; `Game` lo usa para una carga rápida de `textures` y `sounds` (p. ej. `background`, `sound_test`).
+- Limitaciones: aún no centraliza la carga de fuentes (actualmente `MenuScene` busca fuentes directamente), no hay protección por mutex para cargas concurrentes ni hot-reload.
+
+5) Logger
+- Archivos: `src/core/Logger.h/.cpp`.
+- Estado: Logger singleton con salida a consola y archivo (thread-safe mediante mutex). Usado por `Game`, `SceneManager` y escenas para trazas y advertencias.
+
+6) Timer / TimerScope
+- Archivos: `src/core/Timer.h/.cpp`.
+- Estado: utilidades para medir delta times y duraciones; `Timer` y `TimerScope` siguen presentes y estables.
+
+7) main.cpp
+- `main()` crea `Game` y llama `run()`; incluye manejo básico de excepciones y salidas limpias.
+
+Contratos mínimos
+- `Game::run()` es bloqueante y finaliza limpiamente si no hay escenas activas.
+- `SceneManager` no lanza en operaciones normales; errores se registran con `Logger`.
+- `AssetManager::load*From(path)` registra errores de I/O y devuelve los assets cargados cuando es posible.
+
+Casos borde y riesgos
+- Recursos faltantes: la app registra y continúa (por ejemplo, si faltan fuentes o imágenes el comportamiento degrade graceful con logs).
+- Concurrencia: `Logger` es thread-safe; `AssetManager` no está protegido (riesgo si se accede desde múltiples hilos).
+- Dependencias: el proyecto está adaptado a SFML 3; requiere que SFML (con Audio) esté disponible en vcpkg o sistema.
+- Paths y ejecución: Existe un paso post-build que copia `assets/` a la carpeta del ejecutable; si se ejecuta desde otra ruta la búsqueda robusta intenta localizar `assets/` ascendiendo el árbol.
+
+Cambios aplicados (delta)
+- `src/core/Game.h/cpp`: integración de `scene::SceneManager`, delegación de eventos/update/render, búsqueda de assets y soporte de FPS.
+- `src/input/*`: nuevo subsistema `InputManager` y `Action`.
+- `src/scene/*`: nuevo sistema de escenas con `MenuScene` y `PlayScene` de ejemplo.
+- `src/core/AssetManager.*`: carga central de texturas y sonidos (fuentes aún no centralizadas).
+- `src/core/Logger.*`, `src/core/Timer.*`: utilidades consolidadas y usadas por el core y las escenas.
+
+Quality gates y estado del build
+- Build: el proyecto compila con CMake / Visual Studio y el post-build copia `assets/` a `build/Release`.
+- Tests: no se añadieron tests automatizados en esta iteración.
+- Smoke test: ejecución local desde `build/Release` evidencia:
+  - `MenuScene` carga `assets/fonts/Long_Shot.ttf` si está disponible (búsqueda robusta), muestra texto y permite transicionar a `PlayScene` con Enter.
+  - `PlayScene` responde a movimiento y Escape vuelve al menú.
+
+Recomendaciones y próximos pasos (sugeridos)
+- Centralizar la carga de fuentes en `AssetManager` y eliminar búsquedas ad-hoc en escenas.
+- Añadir tests unitarios básicos para `SceneManager` y `AssetManager`.
+- Añadir un `ResourceLocator` para normalizar rutas de assets (repo, build dir, install dir).
+- Considerar protección con mutex en `AssetManager` si se prevé carga desde múltiples hilos.
+
+Resumen corto
+- El core está operativo y ha recibido cambios importantes: sistema de escenas, subsistema de input, centralización parcial de assets y mejoras en `Game`. El binario se construye y ejecuta mostrando el flujo básico Menu->Play->Exit.
+
+Estado de requisitos
+- Actualizar doc: Done.
+- Refactor sugerido (fuentes en AssetManager): Recomendado (pendiente).
+
+Fin del documento.
 # Estado actual del Core (estado consolidado con cambios recientes)
 
 Resumen corto

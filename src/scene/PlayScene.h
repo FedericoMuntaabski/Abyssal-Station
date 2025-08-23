@@ -6,6 +6,9 @@
 
 namespace scene { class SceneManager; }
 
+namespace entities { class Player; class EntityManager; class Wall; }
+namespace collisions { class CollisionManager; class CollisionSystem; }
+
 namespace scene {
 
 class PlayScene : public Scene {
@@ -25,7 +28,12 @@ private:
     sf::RectangleShape m_rect;
     sf::Vector2f m_velocity{0.f, 0.f};
     float m_speed{200.f};
-    // ...existing code...
+    // Entities manager for this scene
+    std::unique_ptr<entities::EntityManager> m_entityManager;
+    std::unique_ptr<collisions::CollisionManager> m_collisionManager;
+    std::unique_ptr<collisions::CollisionSystem> m_collisionSystem;
+    // keep a raw pointer to player if needed
+    entities::Player* m_player{nullptr};
 };
 
 } // namespace scene
