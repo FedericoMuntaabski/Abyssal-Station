@@ -18,9 +18,20 @@ public:
     // Basic accessors
     Id id() const noexcept;
     const sf::Vector2f& position() const noexcept;
-    void setPosition(const sf::Vector2f& pos) noexcept;
+    virtual void setPosition(const sf::Vector2f& pos) noexcept;
     const sf::Vector2f& size() const noexcept;
     void setSize(const sf::Vector2f& s) noexcept;
+
+    // Entity state management
+    bool isActive() const noexcept { return active_; }
+    void setActive(bool active) noexcept { active_ = active; }
+    bool isVisible() const noexcept { return visible_; }
+    void setVisible(bool visible) noexcept { visible_ = visible; }
+
+    // Bounds helper
+    sf::FloatRect getBounds() const noexcept {
+        return sf::FloatRect(position_, size_);
+    }
 
     // Simple collision layer support (bitmask)
     enum class Layer : std::uint32_t {
@@ -44,6 +55,8 @@ protected:
     sf::Vector2f position_;
     sf::Vector2f size_;
     std::uint32_t collisionLayer_{static_cast<std::uint32_t>(Layer::Default)};
+    bool active_{true};
+    bool visible_{true};
 };
 
 // Predefined masks for convenience

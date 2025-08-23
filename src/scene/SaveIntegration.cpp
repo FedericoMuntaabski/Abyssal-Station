@@ -61,10 +61,11 @@ void applyGameState(const core::GameState& state, EntityManager& em, ItemManager
             continue;
         }
         Player* player = it->second;
-        player->commitMove({ps.x, ps.y});
-        // No setter for health in Player; if exists, set it. Otherwise ignore or expose setter.
-        // For now we log intended health restore
-        core::Logger::instance().info(std::string("[load] Restored player id=") + std::to_string(ps.id) + " health=" + std::to_string(ps.health));
+        player->setPosition({ps.x, ps.y});
+        player->setHealth(ps.health);
+        core::Logger::instance().info(std::string("[load] Restored player id=") + std::to_string(ps.id) + 
+                                    " position=(" + std::to_string(ps.x) + "," + std::to_string(ps.y) + ")" +
+                                    " health=" + std::to_string(ps.health));
     }
 
     // Restore items: mark collected if in list

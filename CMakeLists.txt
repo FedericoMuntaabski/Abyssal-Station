@@ -56,6 +56,8 @@ add_executable(AbyssalStation
     src/entities/Wall.h
     src/entities/EntityManager.cpp
     src/entities/EntityManager.h
+    src/entities/MovementHelper.cpp
+    src/entities/MovementHelper.h
 
     # AI module
     src/ai/Enemy.cpp
