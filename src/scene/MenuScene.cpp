@@ -6,6 +6,8 @@
 #include <utility>
 #include <filesystem>
 #include <cstdlib>
+#include "../ui/UIManager.h"
+#include "../ui/MainMenu.h"
 
 namespace scene {
 
@@ -52,11 +54,14 @@ void MenuScene::onEnter() {
 
 #ifdef _WIN32
     if (fontPath.empty()) {
-        const char* windir = std::getenv("WINDIR");
-        if (windir) {
+        // Use _dupenv_s to avoid MSVC deprecation warning for getenv
+        char* windir = nullptr;
+        size_t len = 0;
+        if (_dupenv_s(&windir, &len, "WINDIR") == 0 && windir) {
             fs::path winFont = fs::path(windir) / "Fonts" / "arial.ttf";
             if (fs::exists(winFont)) fontPath = winFont.string();
         }
+        if (windir) free(windir);
     }
 #endif
 
@@ -75,6 +80,10 @@ void MenuScene::onEnter() {
     }
 
     Logger::instance().info("MenuScene: onEnter");
+
+    // Create UIManager and push the main menu
+    m_uiManager = std::make_unique<ui::UIManager>();
+    m_uiManager->pushMenu(new ui::MainMenu(m_manager, m_uiManager.get()));
 }
 
 void MenuScene::onExit() {
@@ -98,10 +107,12 @@ void MenuScene::handleEvent(sf::Event& event) {
 void MenuScene::update(float dt) {
     // no-op for menu
     (void)dt;
+    if (m_uiManager) m_uiManager->update(dt);
 }
 
 void MenuScene::render(sf::RenderWindow& window) {
     if (m_text) window.draw(*m_text);
+    if (m_uiManager) m_uiManager->render(window);
 }
 
 } // namespace scene

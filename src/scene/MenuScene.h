@@ -6,6 +6,7 @@
 #include <memory>
 
 namespace scene { class SceneManager; class PlayScene; }
+namespace ui { class UIManager; }
 
 namespace scene {
 
@@ -23,6 +24,7 @@ public:
 
 private:
     SceneManager* m_manager{nullptr};
+    std::unique_ptr<ui::UIManager> m_uiManager;
     sf::Font m_font;
     std::unique_ptr<sf::Text> m_text;
     bool m_fontLoaded{false};

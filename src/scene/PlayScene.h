@@ -6,6 +6,7 @@
 #include "../ai/EnemyManager.h"
 
 namespace scene { class SceneManager; }
+namespace ui { class UIManager; }
 
 namespace entities { class Player; class EntityManager; class Wall; }
 namespace collisions { class CollisionManager; class CollisionSystem; }
@@ -26,6 +27,7 @@ public:
 
 private:
     SceneManager* m_manager{nullptr};
+    std::unique_ptr<ui::UIManager> m_uiManager;
     sf::RectangleShape m_rect;
     sf::Vector2f m_velocity{0.f, 0.f};
     float m_speed{200.f};
