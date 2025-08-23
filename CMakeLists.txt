@@ -25,7 +25,26 @@ add_executable(AbyssalStation
     src/core/Game.cpp
     src/core/Game.h
     src/core/AssetManager.cpp
+    src/core/Logger.cpp
+    src/core/Timer.cpp
+    # Scene module sources
+    src/scene/SceneManager.cpp
+    src/scene/MenuScene.cpp
+    src/scene/PlayScene.cpp
+    src/scene/Scene.h
+    src/scene/SceneManager.h
+    src/scene/MenuScene.h
+    src/scene/PlayScene.h
+    # Input module
+    src/input/InputManager.cpp
+    src/input/InputManager.h
 )
 
 target_include_directories(AbyssalStation PRIVATE ${CMAKE_SOURCE_DIR}/src)
 target_link_libraries(AbyssalStation PRIVATE SFML::Graphics SFML::Window SFML::System SFML::Audio)
+
+# Copy assets folder to the target directory after build so the executable can load resources using relative paths
+add_custom_command(TARGET AbyssalStation POST_BUILD
+    COMMAND ${CMAKE_COMMAND} -E copy_directory
+        ${CMAKE_SOURCE_DIR}/assets $<TARGET_FILE_DIR:AbyssalStation>/assets
+)
