@@ -35,6 +35,9 @@ public:
     
         void setUIManager(ui::UIManager* uiManager);
 
+    // Access to puzzles for serialization/integration
+    std::vector<Puzzle*> allPuzzles() const;
+
 private:
     std::vector<std::unique_ptr<Puzzle>> puzzles_;
     // Track which puzzles we've already logged as completed

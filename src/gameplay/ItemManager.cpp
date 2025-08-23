@@ -124,3 +124,11 @@ void ItemManager::interactWithItem(entities::Entity::Id itemId, entities::Player
         if (auto p = puzzleManager_->getPuzzleById(pid)) p->markStepCompleted(step);
     }
 }
+
+std::vector<Item*> ItemManager::allItems() const
+{
+    std::vector<Item*> out;
+    out.reserve(items_.size());
+    for (const auto& up : items_) if (up) out.push_back(up.get());
+    return out;
+}

@@ -32,6 +32,8 @@ public:
 
     // Lookup helpers
     Entity* getEntity(Entity::Id id) const;
+    // Return raw pointers to all entities (non-owning)
+    std::vector<Entity*> allEntities() const;
     std::size_t count() const noexcept;
 
     // Collision manager wiring: set the collision manager used to register colliders

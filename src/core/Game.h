@@ -5,6 +5,8 @@
 #include <SFML/Audio.hpp>
 #include <memory>
 #include <string>
+#include "core/ConfigManager.h"
+#include "core/SaveManager.h"
 
 namespace scene { class SceneManager; }
 
@@ -43,6 +45,9 @@ private:
 
     // Scene manager for game scenes
     std::unique_ptr<scene::SceneManager> m_sceneManager;
+    // Persistence/config managers
+    core::ConfigManager m_configManager{"config"};
+    core::SaveManager m_saveManager{"saves"};
 };
 
 #endif // A2B9B8_GAME_H

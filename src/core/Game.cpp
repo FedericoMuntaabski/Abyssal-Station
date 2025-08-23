@@ -9,9 +9,18 @@
 Game::Game(unsigned int width, unsigned int height, const std::string& title)
     : m_window(), m_clock(), m_isRunning(false)
 {
-    // Initialize SFML window
+    // Load config (fallbacks handled inside ConfigManager)
     try {
-        initWindow(width, height, title);
+        m_configManager.loadConfig();
+    } catch (...) {
+        // ignore, ConfigManager logs internally
+    }
+
+    // Initialize SFML window using config resolution if available
+    try {
+        unsigned int w = static_cast<unsigned int>(m_configManager.width());
+        unsigned int h = static_cast<unsigned int>(m_configManager.height());
+        initWindow(w, h, title);
     } catch (const std::exception& e) {
         std::cerr << "Failed to initialize Game: " << e.what() << std::endl;
         throw;
@@ -103,6 +112,9 @@ void Game::run()
     // Initialize scene manager and push the initial MenuScene
     m_sceneManager = std::make_unique<scene::SceneManager>();
     m_sceneManager->push(std::make_unique<scene::MenuScene>(m_sceneManager.get()));
+
+    // Apply UI related configuration (notification duration etc.) if UIManager available in scenes later
+    // We will apply per-scene when they create their UIManager; ConfigManager::applyConfig can be called from scenes.
 
     while (m_isRunning && m_window.isOpen()) {
         // Calculate delta time

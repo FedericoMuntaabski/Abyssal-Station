@@ -14,7 +14,13 @@ void Menu::activate() {
         try {
             core::Logger::instance().info("Menu entered: " + name_);
         } catch (...) {}
-        onEnter();
+        try {
+            onEnter();
+        } catch (const std::exception& e) {
+            try { core::Logger::instance().error(std::string("Menu::onEnter exception: ") + e.what()); } catch(...) {}
+        } catch (...) {
+            try { core::Logger::instance().error("Menu::onEnter unknown exception"); } catch(...) {}
+        }
     }
 }
 
@@ -24,7 +30,13 @@ void Menu::deactivate() {
         try {
             core::Logger::instance().info("Menu exited: " + name_);
         } catch (...) {}
-        onExit();
+        try {
+            onExit();
+        } catch (const std::exception& e) {
+            try { core::Logger::instance().error(std::string("Menu::onExit exception: ") + e.what()); } catch(...) {}
+        } catch (...) {
+            try { core::Logger::instance().error("Menu::onExit unknown exception"); } catch(...) {}
+        }
     }
 }
 

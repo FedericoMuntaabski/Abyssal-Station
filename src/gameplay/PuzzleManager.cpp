@@ -52,6 +52,14 @@ void PuzzleManager::setUIManager(ui::UIManager* uiManager)
     uiManager_ = uiManager;
 }
 
+std::vector<Puzzle*> PuzzleManager::allPuzzles() const
+{
+    std::vector<Puzzle*> out;
+    out.reserve(puzzles_.size());
+    for (const auto& up : puzzles_) if (up) out.push_back(up.get());
+    return out;
+}
+
 Puzzle* PuzzleManager::getPuzzleById(entities::Entity::Id id)
 {
     auto it = std::find_if(puzzles_.begin(), puzzles_.end(), [id](const std::unique_ptr<Puzzle>& p){ return p && p->id() == id; });
