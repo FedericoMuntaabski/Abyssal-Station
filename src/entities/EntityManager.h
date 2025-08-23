@@ -7,6 +7,8 @@
 #include <memory>
 #include <cstddef>
 
+namespace collisions { class CollisionManager; }
+
 namespace entities {
 
 class EntityManager {
@@ -32,8 +34,12 @@ public:
     Entity* getEntity(Entity::Id id) const;
     std::size_t count() const noexcept;
 
+    // Collision manager wiring: set the collision manager used to register colliders
+    void setCollisionManager(collisions::CollisionManager* manager);
+
 private:
     std::vector<std::unique_ptr<Entity>> entities_;
+    collisions::CollisionManager* collisionManager_{nullptr};
 };
 
 } // namespace entities

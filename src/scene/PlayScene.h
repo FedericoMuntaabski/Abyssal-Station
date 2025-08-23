@@ -6,7 +6,8 @@
 
 namespace scene { class SceneManager; }
 
-namespace entities { class Player; class EntityManager; }
+namespace entities { class Player; class EntityManager; class Wall; }
+namespace collisions { class CollisionManager; class CollisionSystem; }
 
 namespace scene {
 
@@ -29,6 +30,8 @@ private:
     float m_speed{200.f};
     // Entities manager for this scene
     std::unique_ptr<entities::EntityManager> m_entityManager;
+    std::unique_ptr<collisions::CollisionManager> m_collisionManager;
+    std::unique_ptr<collisions::CollisionSystem> m_collisionSystem;
     // keep a raw pointer to player if needed
     entities::Player* m_player{nullptr};
 };

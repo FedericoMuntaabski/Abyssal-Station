@@ -23,6 +23,10 @@ public:
     void update(float deltaTime) override;
     void render(sf::RenderWindow& window) override;
 
+    // Intended-movement API: compute target position without applying, and apply if allowed
+    sf::Vector2f computeIntendedMove(float deltaTime) const;
+    void commitMove(const sf::Vector2f& newPosition);
+
     // Accessors
     float speed() const noexcept { return speed_; }
     int health() const noexcept { return health_; }

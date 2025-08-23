@@ -52,12 +52,10 @@ void Player::handleInput(input::InputManager& inputManager) {
 }
 
 void Player::update(float deltaTime) {
-    if (velocity_.x != 0.f || velocity_.y != 0.f) {
-        float len = std::sqrt(velocity_.x*velocity_.x + velocity_.y*velocity_.y);
-        if (len > 0.f) velocity_ /= len;
-        position_ += velocity_ * speed_ * deltaTime;
-        shape_.setPosition(position_);
-    }
+
+    // Movement is now controlled externally via computeIntendedMove() and commitMove()
+    // Keep position/shape syncing if other systems changed position
+    shape_.setPosition(position_);
 
     // Rate-limited debug: log position and velocity every debugLogInterval_ seconds
     debugLogTimer_ += deltaTime;
@@ -67,6 +65,19 @@ void Player::update(float deltaTime) {
             " pos=(" + std::to_string(position_.x) + "," + std::to_string(position_.y) + ")" +
             " vel=(" + std::to_string(velocity_.x) + "," + std::to_string(velocity_.y) + ")");
     }
+}
+
+sf::Vector2f Player::computeIntendedMove(float deltaTime) const {
+    if (velocity_.x == 0.f && velocity_.y == 0.f) return position_;
+    sf::Vector2f v = velocity_;
+    float len = std::sqrt(v.x*v.x + v.y*v.y);
+    if (len > 0.f) v /= len;
+    return position_ + v * speed_ * deltaTime;
+}
+
+void Player::commitMove(const sf::Vector2f& newPosition) {
+    position_ = newPosition;
+    shape_.setPosition(position_);
 }
 
 void Player::render(sf::RenderWindow& window) {
