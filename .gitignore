@@ -154,3 +154,20 @@ CPackConfig.cmake
 /assets/*.flac
 /assets/*.mp3
 !/assets/README.md
+
+# =========================
+# vcpkg - ignore heavy generated/artifact directories by default
+# If you vendor vcpkg itself (vcpkg.exe, ports, scripts), keep those tracked but ignore
+# large generated folders (installed packages, buildtrees, downloads and packages) which
+# are usually generated locally by vcpkg and can be re-created.
+/vcpkg/installed/
+/vcpkg/buildtrees/
+/vcpkg/packages/
+/vcpkg/downloads/
+!/vcpkg/vcpkg.exe
+
+# Note about already tracked files:
+# Git ignore rules only affect untracked files. If a file is already committed, it
+# remains tracked. To stop tracking a file that is currently in the repo, run:
+#   git rm --cached <path>
+# then commit the change.
