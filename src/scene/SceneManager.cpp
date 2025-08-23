@@ -55,6 +55,10 @@ Scene* SceneManager::current() {
     return m_scenes.top().get();
 }
 
+std::size_t SceneManager::size() const {
+    return m_scenes.size();
+}
+
 void SceneManager::handleEvent(sf::Event& event) {
     Scene* cur = current();
     if (cur) cur->handleEvent(event);

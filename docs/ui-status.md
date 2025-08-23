@@ -84,69 +84,66 @@ From the workspace root on Windows PowerShell:
 ```powershell
 # Configure and build (if not already configured)
 cmake -S . -B build -G "Visual Studio 17 2022" -A x64
-cmake --build build --config Release
+````markdown
+# UI module status (updated)
 
-# Run the built executable (Release)
-.
-"build\Release\AbyssalStation.exe"
-```
+Small, focused update that reflects the current `src/ui` implementation and its integration points (input remapping, mouse support, menu stack, and persistence helpers).
 
-Controls (default bindings)
-- MoveUp: W
-- MoveDown: S
-- MoveLeft: A
-- MoveRight: D
-- Confirm: Enter
-- Cancel: Escape
-- Pause: P (Pause toggling was wired to Escape in PlayScene; P is available as Pause key as well)
+Checklist of changes covered here
+- [x] Files present in `src/ui` and responsibilities.
+- [x] Menu base (`Menu`) and concrete menus: `MainMenu`, `PauseMenu`, `OptionsMenu`.
+- [x] `UIManager` behavior: stack, delegation, pause flag and query helpers.
+- [x] Navigation: keyboard, arrows, mouse hover/click and remap flow.
+- [x] Integration notes: `SceneManager`, `PlayScene`, `ConfigManager`/`SaveManager` and `SaveIntegration`.
 
-While running:
-- Main menu appears at start; navigate with W/S (up/down) and Enter to select.
-- Start Game -> enters PlayScene.
-- Press Escape in PlayScene to open PauseMenu — the game logic will freeze while the pause menu is active.
-- From PauseMenu you can select Options to open the OptionsMenu (adjust Volume with Left/Right) or Resume to return to the game.
+High-level summary
 
-## Mapping to original requirements
+The UI package implements a modular menu system suitable for keyboard and mouse. Menus are self-contained classes that handle input, drawing and lifecycle. The `UIManager` keeps an ordered stack of active menus and provides helpers (isAnyMenuActive/isMenuActive) and a pause flag used by `PlayScene`.
 
-- Menu base class with virtual `handleInput`, `update`, `render`, plus `onEnter`/`onExit` and activation control — Done.
-- `MainMenu` with Start/Options/Exit, keyboard navigation and integration with `SceneManager` — Done.
-- `PauseMenu` with Resume/Options/Quit, toggled by Escape, integrated with scene — Done (Pause now freezes PlayScene logic).
-- `OptionsMenu` with Volume/Controls placeholders and callbacks for volume — Done (volume changes logged; integration with audio is a TODO).
-- `UIManager` with stack semantics, delegation to active menus and logging — Done.
-- Integration with `InputManager` for navigation and per-frame detection — Done (added `endFrame()` and multi-binding support).
-- Logging of menu open/close and selections — Done (uses `core::Logger`).
+Files in `src/ui`
+- `Menu.h` / `Menu.cpp` — abstract base class with `handleInput()`, `update(float)`, `render(sf::RenderWindow&)`, optional `onEnter()`/`onExit()` and activation helpers.
+- `MainMenu.h` / `MainMenu.cpp` — Start / Options / Exit, keyboard + mouse navigation, integrates with `SceneManager` to start the game or open the options.
+- `PauseMenu.h` / `PauseMenu.cpp` — Resume / Options / Quit, toggled from `PlayScene` (Escape). Sets `UIManager` pause flag while active.
+- `OptionsMenu.h` / `OptionsMenu.cpp` — Volume (left/right), Controls (remap flow), Back. Shows binding names using `InputManager::getBindingName`.
+- `Menu.cpp` / `Menu.h` — generic menu helpers (selection index, rendering helpers).
+- `UIManager.h` / `UIManager.cpp` — owns menus, stack semantics, delegates update/render/handleInput, logs push/pop/replace and exposes pause state and helpers.
 
-## Known limitations & TODOs
+Navigation and remapping
+- Keyboard: MoveUp/MoveDown (W/S and arrow keys default), Confirm = Enter.
+- Mouse: hovering highlights items; left-click acts as Confirm.
+- Input remapping: `OptionsMenu` supports a simple remap flow — selecting Controls enters remap mode; the next key or mouse button event replaces the binding for the chosen action. The `InputManager` exposes remapping helpers (getLastKeyEvent, rebindKey, getBindingName) used by the UI.
 
-- `OptionsMenu::applyVolume()` only logs the new value. Hook it to the audio system to actually change game volume.
-- `UIManager::pushMenu(Menu*)` currently takes a raw pointer and takes ownership. Consider overloading to accept `std::unique_ptr<Menu>` to avoid mistakes.
-- Menu visuals are minimal text-only render; layout, alignment, and focus visuals can be improved.
-- Menu visuals are minimal text-only render; layout, alignment, and focus visuals can be improved.
-- Basic mouse support is implemented (hover + left click confirm); improvements remain to make the mouse UX richer (scroll, tooltips).
-- Input binding presentation is implemented at a basic level: `OptionsMenu` shows the first binding and supports remap flow, but it should be improved to list multiple bindings and show nicer labels for special keys.
- - The controls remap UI is intentionally minimal: it replaces the selected action's binding with the next raw key or mouse button event. Improvements to implement:
-  - full per-action selection and remapping UI (navigate action list and remap the selected action),
-  - show multiple bindings per action and more readable names for special keys,
-  - add confirmation/cancel during remap and a timeout to abort.
+Integration with scenes and game loop
+- `MenuScene` creates/initializes a `UIManager` and pushes the `MainMenu` on enter. `Game::run()` pushes `MenuScene` on startup.
+- `PlayScene` owns a per-scene `UIManager` instance. While a menu is active the scene avoids running game logic (AI, movement) — menus take input priority.
 
-Note: The `getenv` usage in `MenuScene` was replaced with `_dupenv_s` to avoid MSVC deprecation warnings.
+Persistence and integration with config/save systems
+- `OptionsMenu` currently adjusts a volume integer and remaps controls. These values are intended to be saved/loaded by `core::ConfigManager` (config/config.json). The typical flow should be:
+  - On startup: `core::ConfigManager::loadConfig()` -> `applyConfig(UIManager&)` (applies UI-related settings such as notification durations, defaults).
+  - When options change in `OptionsMenu`: call `ConfigManager::saveConfig()` to persist user choices (volume, language, key bindings).
+- Save/Load of game state is outside `src/ui` but menus are the natural place to trigger it: use `scene::gatherGameState(...)` (from `SaveIntegration`) and `core::SaveManager::saveGame(...)` to persist, and reverse the flow to load.
 
-Notes
-- `core::FontHelper` is used by menus and `PlayScene` as a central fallback for font loading (helps keep consistent fallbacks between UI and scenes).
+Logging and observable messages
+- Menus emit logs via `core::Logger` for open/close/selection events.
+- Integration messages from core:
+  - `[config] Usando valores por defecto; no se encontró: <ruta>` — when config file is absent.
+  - `[save] Archivo no encontrado: <ruta>` — when a requested save file is missing.
 
-## Next suggested steps
+Verification & known limitations
+- The UI compiles and links in the project. Keyboard and mouse navigation, hover, hover animation and remap flow work at the API/manual level.
+- Known TODOs:
+  - Wire `OptionsMenu::applyVolume()` to the real audio system (AssetManager / AudioManager).
+  - Consider `UIManager::pushMenu(std::unique_ptr<Menu>)` to avoid raw-pointer ownership.
+  - Improve remap UI to display multiple bindings and provide cancel/timeout during remap.
+  - Add a Save / Load menu item (MainMenu or Options) that calls `SaveIntegration` + `SaveManager` for full round-trip persistence.
 
-1. Wire `OptionsMenu::applyVolume()` to the audio system (e.g., set global music/sfx volume in `AssetManager` or audio manager).
-2. Implement a safer `UIManager::pushMenu(std::unique_ptr<Menu>)` overload and convert call sites to use `unique_ptr`.
-3. Improve controls remapping UI: full per-action selection, show multiple bindings and readable names, cancel/timeout, and better visual feedback while remapping.
-4. Improve menu rendering (font sizes, centered layout, translucent background when paused).
-5. Add small unit tests for `UIManager` and menu activation logic.
+Next suggested actions
+- Implement `UIManager` overloads that accept `std::unique_ptr<Menu>` and update call sites.
+- Wire `OptionsMenu` volume changes to an audio manager and persist via `ConfigManager`.
+- Add menu entries for Save/Load that use `scene::gatherGameState` + `SaveManager::saveGame` and `SaveManager::loadGame` + `scene::applyGameState`.
+- Add unit tests for `UIManager` activation and a small integration test for remap flow.
 
----
+If you want I can implement one of the next steps above; tell me which one to prioritize and I will make the change and run a build/test.
 
-If you want, I can now:
-- implement `pushMenu(std::unique_ptr<Menu>)` overloads and convert call sites, or
+````
 - wire `OptionsMenu` volume to actual audio, or
-- add a translucent overlay when paused and center the menus.
-
-Tell me which of those you prefer next and I will implement it.

@@ -32,6 +32,7 @@ add_executable(AbyssalStation
     src/scene/SceneManager.cpp
     src/scene/MenuScene.cpp
     src/scene/PlayScene.cpp
+    src/scene/SaveIntegration.cpp
     src/scene/Scene.h
     src/scene/SceneManager.h
     src/scene/MenuScene.h
@@ -64,12 +65,14 @@ add_executable(AbyssalStation
     src/gameplay/ItemManager.cpp
     src/gameplay/Puzzle.cpp
     src/gameplay/PuzzleManager.cpp
+    src/core/SaveManager.cpp
     # Debug scene for pickup test
     src/scene/DebugPickupScene.cpp
     # UI module
     src/ui/Menu.cpp
     src/ui/MainMenu.cpp
     src/ui/PauseMenu.cpp
+    src/core/ConfigManager.cpp
     src/ui/OptionsMenu.cpp
     src/ui/UIManager.cpp
 )

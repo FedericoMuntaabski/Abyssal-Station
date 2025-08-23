@@ -19,6 +19,8 @@ public:
 
     // Pop the current scene. The popped scene's onExit() will be called.
     void pop();
+    // Return current number of scenes on the stack (diagnostic)
+    std::size_t size() const;
 
     // Replace the current scene with a new one.
     void replace(std::unique_ptr<Scene> scene);

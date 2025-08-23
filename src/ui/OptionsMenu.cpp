@@ -1,6 +1,7 @@
 #include "OptionsMenu.h"
 #include "../input/InputManager.h"
 #include "../core/Logger.h"
+#include "../core/ConfigManager.h"
 
 #include <SFML/Graphics/Text.hpp>
 #include <SFML/Graphics/Font.hpp>
@@ -12,9 +13,15 @@ using input::InputManager;
 OptionsMenu::OptionsMenu(scene::SceneManager* manager)
     : Menu("OptionsMenu"), m_manager(manager) {
     m_options = {"Volume", "Controls", "Back"};
+    try {
+        core::Logger::instance().info("OptionsMenu: constructed; manager=" + std::string(m_manager ? "valid" : "null"));
+    } catch(...) {}
 }
 
 void OptionsMenu::onEnter() {
+    try {
+        core::Logger::instance().info("OptionsMenu: onEnter");
+    } catch(...) {}
     m_selected = 0;
 }
 
@@ -25,6 +32,12 @@ int OptionsMenu::volume() const noexcept { return m_volume; }
 void OptionsMenu::setVolume(int vol) {
     m_volume = std::clamp(vol, 0, 100);
     applyVolume();
+    core::ConfigManager cfg;
+    if (cfg.loadConfig()) {
+        cfg.setVolumeValue(m_volume);
+        cfg.saveConfig();
+        // apply to UI manager if available (OptionsMenu could have access to UI via SceneManager)
+    }
 }
 
 void OptionsMenu::applyVolume() {
@@ -33,7 +46,11 @@ void OptionsMenu::applyVolume() {
 }
 
 void OptionsMenu::handleInput() {
-    auto& im = InputManager::getInstance();
+    try {
+        core::Logger::instance().info("OptionsMenu: handleInput start");
+    } catch(...) {}
+    try {
+        auto& im = InputManager::getInstance();
 
     if (im.isActionJustPressed(input::Action::MoveUp)) {
         if (m_selected == 0) m_selected = m_options.size() - 1;
@@ -74,10 +91,19 @@ void OptionsMenu::handleInput() {
             }
         }
     }
+    } catch (const std::exception& e) {
+        try { core::Logger::instance().error(std::string("OptionsMenu::handleInput exception: ") + e.what()); } catch(...) {}
+    } catch (...) {
+        try { core::Logger::instance().error("OptionsMenu::handleInput unknown exception"); } catch(...) {}
+    }
 }
 
 void OptionsMenu::update(float dt) {
+    try {
+        core::Logger::instance().info("OptionsMenu: update start");
+    } catch(...) {}
     (void)dt;
+    try {
     if (m_waitingForRemap) {
         auto& im = InputManager::getInstance();
         auto lastKey = im.getLastKeyEvent();
@@ -86,6 +112,9 @@ void OptionsMenu::update(float dt) {
             core::Logger::instance().info(std::string("Rebound action to key ") + std::to_string(static_cast<int>(lastKey.second)));
             m_waitingForRemap = false;
             im.clearLastEvents();
+                    // Persist new bindings
+                    core::ConfigManager cfg;
+                    cfg.saveBindingsFromInput();
         } else {
             auto lastMouse = im.getLastMouseButtonEvent();
             if (lastMouse.first) {
@@ -93,12 +122,23 @@ void OptionsMenu::update(float dt) {
                 core::Logger::instance().info(std::string("Rebound action to mouse button ") + std::to_string(static_cast<int>(lastMouse.second)));
                 m_waitingForRemap = false;
                 im.clearLastEvents();
+                        // Persist new bindings
+                        core::ConfigManager cfg;
+                        cfg.saveBindingsFromInput();
             }
         }
+    }
+    } catch (const std::exception& e) {
+        try { core::Logger::instance().error(std::string("OptionsMenu::update exception: ") + e.what()); } catch(...) {}
+    } catch (...) {
+        try { core::Logger::instance().error("OptionsMenu::update unknown exception"); } catch(...) {}
     }
 }
 
 void OptionsMenu::render(sf::RenderWindow& window) {
+    try {
+        core::Logger::instance().info("OptionsMenu: render start");
+    } catch(...) {}
     static sf::Font font;
     static bool fontLoaded = false;
     if (!fontLoaded) {
@@ -149,6 +189,13 @@ void OptionsMenu::render(sf::RenderWindow& window) {
             instr.setPosition(sf::Vector2f(bx, by + static_cast<float>(m_actionsToShow.size()) * (m_spacing - 6.f)));
             window.draw(instr);
         }
+    }
+    try {
+        // finished render
+    } catch (const std::exception& e) {
+        try { core::Logger::instance().error(std::string("OptionsMenu::render exception: ") + e.what()); } catch(...) {}
+    } catch (...) {
+        try { core::Logger::instance().error("OptionsMenu::render unknown exception"); } catch(...) {}
     }
 }
 

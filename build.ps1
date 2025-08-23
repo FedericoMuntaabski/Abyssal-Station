@@ -88,6 +88,16 @@ if ($LASTEXITCODE -ne 0) {
 }
 Pop-Location
 
+Write-Host "Installing nlohmann-json (x64) via vcpkg..."
+Push-Location $vcpkgDir
+& .\vcpkg.exe install nlohmann-json:x64-windows
+if ($LASTEXITCODE -ne 0) {
+    Write-Error "vcpkg failed to install nlohmann-json. Check vcpkg output for details."
+    Pop-Location
+    exit 1
+}
+Pop-Location
+
 Write-Host "Configuring and building with CMake (Visual Studio 17 2022, x64)..."
 $buildDir = Join-Path $root 'build'
 if (-not (Test-Path $buildDir)) { New-Item -ItemType Directory -Path $buildDir | Out-Null }

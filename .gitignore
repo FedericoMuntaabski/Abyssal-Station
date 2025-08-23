@@ -156,6 +156,18 @@ CPackConfig.cmake
 !/assets/README.md
 
 # =========================
+# User configuration and saves (local, per-developer)
+# Ignore runtime config and save files which are environment/user-specific.
+# Keep README files if present by adding explicit exceptions.
+/config/
+/config/*.json
+!/config/README.md
+
+/saves/
+/saves/*.json
+!/saves/README.md
+
+# =========================
 # vcpkg - ignore heavy generated/artifact directories by default
 # If you vendor vcpkg itself (vcpkg.exe, ports, scripts), keep those tracked but ignore
 # large generated folders (installed packages, buildtrees, downloads and packages) which

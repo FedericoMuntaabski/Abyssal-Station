@@ -39,6 +39,9 @@ public:
     // Directly trigger interaction with an item by id (used by player 'Interact' action)
     void interactWithItem(entities::Entity::Id itemId, entities::Player* player);
 
+    // Access to items for serialization/integration (non-owning raw pointers)
+    std::vector<Item*> allItems() const;
+
 private:
     collisions::CollisionManager* collisionManager_;
     std::vector<std::unique_ptr<Item>> items_;

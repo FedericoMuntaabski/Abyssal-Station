@@ -6,6 +6,9 @@
 #include "OptionsMenu.h"
 #include "../scene/PlayScene.h"
 
+#include <thread>
+#include <chrono>
+
 #include <SFML/Graphics/Text.hpp>
 #include <SFML/Graphics/Font.hpp>
 
@@ -50,8 +53,15 @@ void MainMenu::handleInput() {
             }
         } else if (choice == "Options") {
             if (m_uiManager) {
+                core::Logger::instance().info(std::string("MainMenu: opening OptionsMenu; m_manager=") + (m_manager ? "valid" : "null") + std::string(" m_uiManager=valid"));
                 // open OptionsMenu on top
                 m_uiManager->pushMenu(new OptionsMenu(m_manager));
+                core::Logger::instance().info("MainMenu: OptionsMenu push completed -- now sleeping briefly for diagnostics");
+                // brief sleep to let async issues surface and provide a clearer log window
+                try {
+                    std::this_thread::sleep_for(std::chrono::milliseconds(1000));
+                    core::Logger::instance().info("MainMenu: wake after sleep");
+                } catch (...) {}
             } else {
                 core::Logger::instance().info("Options menu not implemented yet.");
             }

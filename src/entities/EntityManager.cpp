@@ -76,4 +76,12 @@ void EntityManager::setCollisionManager(CollisionManager* manager) {
     collisionManager_ = manager;
 }
 
+std::vector<Entity*> EntityManager::allEntities() const
+{
+    std::vector<Entity*> out;
+    out.reserve(entities_.size());
+    for (const auto& up : entities_) if (up) out.push_back(up.get());
+    return out;
+}
+
 } // namespace entities
