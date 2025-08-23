@@ -4,9 +4,6 @@
 #include <nlohmann/json.hpp>
 #include <fstream>
 #include <filesystem>
-#include "../input/InputManager.h"
-#include "../input/Action.h"
-#include <algorithm>
 
 namespace fs = std::filesystem;
 using json = nlohmann::json;
@@ -96,24 +93,6 @@ bool ConfigManager::saveConfig() const
         j["resolution"] = { {"width", m_width}, {"height", m_height} };
         j["notificationDuration"] = m_notificationDuration;
 
-        // Save bindings
-        try {
-            nlohmann::json binds = nlohmann::json::object();
-            auto& im = input::InputManager::getInstance();
-            for (int a = 0; a <= static_cast<int>(input::Action::Pause); ++a) {
-                auto act = static_cast<input::Action>(a);
-                auto keys = im.getKeyBindings(act);
-                auto mice = im.getMouseBindings(act);
-                nlohmann::json arr = nlohmann::json::array();
-                for (auto k : keys) arr.push_back(static_cast<int>(k));
-                for (auto m : mice) arr.push_back(1000 + static_cast<int>(m)); // mouse offset
-                binds[std::to_string(a)] = arr;
-            }
-            j["bindings"] = binds;
-        } catch (...) {
-            // non-fatal
-        }
-
         std::ofstream out(m_configPath);
         if (!out.good()) {
             core::Logger::instance().error("[config] Failed to open config file for writing: " + m_configPath);
@@ -126,67 +105,6 @@ bool ConfigManager::saveConfig() const
     } catch (const std::exception& ex) {
         core::Logger::instance().error(std::string("[config] Exception while saving config: ") + ex.what());
         return false;
-    }
-}
-
-void ConfigManager::saveBindingsFromInput() const
-{
-    // convenience wrapper that loads config, updates bindings section and writes file
-    try {
-        nlohmann::json j;
-        std::ifstream in(m_configPath);
-        if (in.good()) in >> j; else j = nlohmann::json::object();
-
-        nlohmann::json binds = nlohmann::json::object();
-        auto& im = input::InputManager::getInstance();
-        for (int a = 0; a <= static_cast<int>(input::Action::Pause); ++a) {
-            auto act = static_cast<input::Action>(a);
-            auto keys = im.getKeyBindings(act);
-            auto mice = im.getMouseBindings(act);
-            nlohmann::json arr = nlohmann::json::array();
-            for (auto k : keys) arr.push_back(static_cast<int>(k));
-            for (auto m : mice) arr.push_back(1000 + static_cast<int>(m));
-            binds[std::to_string(a)] = arr;
-        }
-
-        j["bindings"] = binds;
-
-        std::ofstream out(m_configPath);
-        if (out.good()) out << j.dump(4);
-    } catch (...) {
-        // ignore
-    }
-}
-
-void ConfigManager::loadBindingsToInput()
-{
-    try {
-        if (!std::filesystem::exists(m_configPath)) return;
-        nlohmann::json j;
-        std::ifstream in(m_configPath);
-        if (!in.good()) return;
-        in >> j;
-        if (!j.contains("bindings")) return;
-        auto& binds = j["bindings"];
-        auto& im = input::InputManager::getInstance();
-        for (auto it = binds.begin(); it != binds.end(); ++it) {
-            int idx = std::stoi(it.key());
-            auto act = static_cast<input::Action>(idx);
-            std::vector<sf::Keyboard::Key> keys;
-            std::vector<sf::Mouse::Button> mice;
-            for (auto v : it.value()) {
-                int vi = v.get<int>();
-                if (vi >= 1000) {
-                    mice.push_back(static_cast<sf::Mouse::Button>(vi - 1000));
-                } else {
-                    keys.push_back(static_cast<sf::Keyboard::Key>(vi));
-                }
-            }
-            if (!keys.empty()) im.rebindKeys(act, keys);
-            if (!mice.empty()) im.rebindMouse(act, mice);
-        }
-    } catch (const std::exception& ex) {
-        core::Logger::instance().error(std::string("[config] Error loading bindings: ") + ex.what());
     }
 }
 

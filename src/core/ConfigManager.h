@@ -2,7 +2,6 @@
 #define ABYSSAL_STATION_SRC_CORE_CONFIGMANAGER_H
 
 #include <string>
-#include <algorithm>
 
 namespace ui { class UIManager; }
 
@@ -27,13 +26,6 @@ public:
     int width() const noexcept { return m_width; }
     int height() const noexcept { return m_height; }
     int version() const noexcept { return m_version; }
-
-    // Bindings persistence helpers (serialize/deserialize to InputManager)
-    void loadBindingsToInput();
-    void saveBindingsFromInput() const;
-
-    // Mutators used by UI
-    void setVolumeValue(int v) { m_volume = std::clamp(v, 0, 100); }
 
 private:
     void setDefaults();

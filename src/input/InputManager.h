@@ -6,6 +6,8 @@
 #include <SFML/Window/Event.hpp>
 #include <SFML/Window/Mouse.hpp>
 #include <unordered_map>
+#include <map>
+#include <vector>
 #include <mutex>
 
 namespace input {
@@ -39,6 +41,27 @@ public:
     // Human readable name for the first binding of an action (e.g. "W", "Left", "Mouse Left")
     std::string getBindingName(Action action) const;
 
+    // Serialization methods for saving/loading bindings configuration
+    bool saveBindings(const std::string& configPath) const;
+    bool loadBindings(const std::string& configPath);
+    // Export/import bindings as JSON string (useful for testing and UI)
+    std::string exportBindingsToJson() const;
+    bool importBindingsFromJson(const std::string& jsonString);
+
+    // Input history and analysis methods
+    void enableInputHistory(bool enable = true);
+    bool isInputHistoryEnabled() const;
+    std::vector<std::pair<Action, float>> getInputHistory(float timePeriod = 5.0f) const;
+    void clearInputHistory();
+    // Get action usage statistics (useful for UI tutorials and hints)
+    std::map<Action, int> getActionUsageCount() const;
+
+    // Performance optimization methods
+    void enableActionCaching(bool enable = true);
+    bool isActionCachingEnabled() const;
+    void precomputeActionStates(); // Call once per frame for optimization
+    void invalidateActionCache(); // Call when bindings change
+
     // Consultas de estado por acción (usa los bindings actuales).
     bool isActionPressed(Action action) const;
     bool isActionJustPressed(Action action) const;
@@ -47,6 +70,9 @@ public:
     // Actualiza el estado interno a partir de un evento SFML.
     // Debe llamarse desde el bucle de eventos (por ejemplo, desde Game).
     void update(const sf::Event& event);
+
+    // Update method with delta time for input history tracking
+    void update(const sf::Event& event, float deltaTime);
 
     // Call once per frame after processing all events to advance the input frame
     void endFrame();
@@ -73,6 +99,27 @@ private:
     bool hasLastKey_{false};
     sf::Mouse::Button lastMouseEvent_{sf::Mouse::Button::Left};
     bool hasLastMouse_{false};
+
+    // Input history system
+    struct InputHistoryEntry {
+        Action action;
+        float timestamp;
+    };
+    bool inputHistoryEnabled_{false};
+    std::vector<InputHistoryEntry> inputHistory_;
+    std::map<Action, int> actionUsageCount_;
+    float gameTime_{0.0f}; // Track game time for history timestamps
+
+    // Performance optimization - action state caching
+    bool actionCachingEnabled_{false};
+    std::unordered_map<Action, bool> cachedActionStates_;
+    std::unordered_map<Action, bool> cachedJustPressedStates_;
+    std::unordered_map<Action, bool> cachedReleasedStates_;
+    bool cacheValid_{false};
+
+    // Helper methods for input history
+    void recordInputHistory(sf::Keyboard::Key key);
+    void recordInputHistory(sf::Mouse::Button button);
 
     // Protege accesos concurrentes si se accede desde varios hilos.
     mutable std::mutex mutex_;

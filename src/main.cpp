@@ -1,16 +1,8 @@
 #include "core/Game.h"
 #include <iostream>
-#include "core/Logger.h"
-#include <csignal>
-
-static void myTerminateHandler() {
-    try { core::Logger::instance().error("Program terminating via std::terminate"); } catch(...) {}
-    std::abort();
-}
 
 int main()
 {
-    std::set_terminate(myTerminateHandler);
     try {
         Game game(1280, 720, "Abyssal Station - Test");
         game.run();
