@@ -6,6 +6,8 @@
 
 namespace scene { class SceneManager; }
 
+namespace entities { class Player; class EntityManager; }
+
 namespace scene {
 
 class PlayScene : public Scene {
@@ -25,7 +27,10 @@ private:
     sf::RectangleShape m_rect;
     sf::Vector2f m_velocity{0.f, 0.f};
     float m_speed{200.f};
-    // ...existing code...
+    // Entities manager for this scene
+    std::unique_ptr<entities::EntityManager> m_entityManager;
+    // keep a raw pointer to player if needed
+    entities::Player* m_player{nullptr};
 };
 
 } // namespace scene

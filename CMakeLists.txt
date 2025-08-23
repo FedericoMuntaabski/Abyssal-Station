@@ -38,6 +38,13 @@ add_executable(AbyssalStation
     # Input module
     src/input/InputManager.cpp
     src/input/InputManager.h
+    # Entities
+    src/entities/Entity.cpp
+    src/entities/Entity.h
+    src/entities/Player.cpp
+    src/entities/Player.h
+    src/entities/EntityManager.cpp
+    src/entities/EntityManager.h
 )
 
 target_include_directories(AbyssalStation PRIVATE ${CMAKE_SOURCE_DIR}/src)

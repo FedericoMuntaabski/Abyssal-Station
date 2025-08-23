@@ -4,6 +4,8 @@
 #include "../core/Logger.h"
 #include "../input/InputManager.h"
 #include "../input/Action.h"
+#include "../entities/EntityManager.h"
+#include "../entities/Player.h"
 
 #include <cmath>
 
@@ -20,6 +22,13 @@ void PlayScene::onEnter() {
     m_rect.setFillColor(sf::Color::Red);
     m_rect.setPosition(sf::Vector2f(200.f, 150.f));
     Logger::instance().info("PlayScene: onEnter");
+
+    // Initialize entity manager and a player
+    m_entityManager = std::make_unique<entities::EntityManager>();
+    // create player with id 1 and position matching the rectangle
+    auto player = std::make_unique<entities::Player>(1u, m_rect.getPosition(), m_rect.getSize());
+    m_player = player.get();
+    m_entityManager->addEntity(std::move(player));
 }
 
 void PlayScene::onExit() {
@@ -54,13 +63,27 @@ void PlayScene::update(float dt) {
         float len = std::sqrt(m_velocity.x * m_velocity.x + m_velocity.y * m_velocity.y);
         m_velocity /= len;
         m_rect.move(m_velocity * m_speed * dt);
+    }
 
-    // ...existing code...
+    // Let the player process input first so its velocity is updated
+    if (m_player) {
+        m_player->handleInput(InputManager::getInstance());
+    }
+
+    // Update all entities
+    if (m_entityManager) m_entityManager->updateAll(dt);
+
+    // Optional: sync debug rectangle to player position so only one visible cube is moved
+    if (m_player) {
+        m_rect.setPosition(m_player->position());
     }
 }
 
 void PlayScene::render(sf::RenderWindow& window) {
+    // Scene-local debug rectangle
     window.draw(m_rect);
+
+    if (m_entityManager) m_entityManager->renderAll(window);
 }
 
 } // namespace scene

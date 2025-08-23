@@ -1,0 +1,41 @@
+#ifndef ABYSSAL_STATION_SRC_ENTITIES_ENTITYMANAGER_H
+#define ABYSSAL_STATION_SRC_ENTITIES_ENTITYMANAGER_H
+
+#include "Entity.h"
+#include <SFML/Graphics/RenderWindow.hpp>
+#include <vector>
+#include <memory>
+#include <cstddef>
+
+namespace entities {
+
+class EntityManager {
+public:
+    EntityManager() = default;
+    ~EntityManager() = default;
+
+    // Non-copyable
+    EntityManager(const EntityManager&) = delete;
+    EntityManager& operator=(const EntityManager&) = delete;
+
+    // Add an entity to the manager. Takes ownership via unique_ptr.
+    void addEntity(std::unique_ptr<Entity> entity);
+
+    // Remove an entity by id. Returns true if removed.
+    bool removeEntity(Entity::Id id);
+
+    // Update and render all managed entities
+    void updateAll(float deltaTime);
+    void renderAll(sf::RenderWindow& window) const;
+
+    // Lookup helpers
+    Entity* getEntity(Entity::Id id) const;
+    std::size_t count() const noexcept;
+
+private:
+    std::vector<std::unique_ptr<Entity>> entities_;
+};
+
+} // namespace entities
+
+#endif // ABYSSAL_STATION_SRC_ENTITIES_ENTITYMANAGER_H

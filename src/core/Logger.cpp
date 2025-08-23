@@ -48,6 +48,9 @@ public:
         if (consoleEnabled) {
             if (level == LogLevel::Error) std::cerr << oss.str();
             else std::cout << oss.str();
+            // Ensure immediate output on consoles that may buffer stdout/stderr
+            if (level == LogLevel::Error) std::cerr.flush();
+            else std::cout.flush();
         }
         if (fileStream.is_open()) {
             fileStream << oss.str();
