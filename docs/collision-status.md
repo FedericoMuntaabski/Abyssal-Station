@@ -27,11 +27,17 @@ Resumen técnico y API
   - `std::vector<Entity*> checkCollisions(Entity* owner) const` — devuelve entidades que colisionan con `owner`.
   - `Entity* firstColliderForBounds(const sf::FloatRect& bounds, Entity* exclude = nullptr) const` — helper para pruebas de pre-movimiento (devuelve el primer collider que intersecta `bounds`).
 
+  - `Entity* firstColliderForBounds(const sf::FloatRect& bounds, Entity* exclude = nullptr, std::uint32_t allowedLayers = 0xFFFFFFFFu) const` — helper para pruebas de pre-movimiento (devuelve el primer collider que intersecta `bounds`). Ahora soporta filtrado por máscara de capas para excluir/permitir interacciones por tipo (ej: items, walls, players).
+
 - CollisionSystem
   - Constructor: `CollisionSystem(CollisionManager& manager)`
   - `void resolve(Entity* entity, float deltaTime)` — resuelve colisiones AABB para `Player` usando MTV y ajusta posición.
   - `void resolveAll()` — placeholder (no implementado: el caller debe iterar entidades si se desea).
   - Logs: rate-limited (por defecto ~0.25s) para no spamear la salida.
+
+- Nuevas utilidades
+  - `CollisionBox` ahora almacena una máscara de capa (`layer_`) tomada del `Entity::collisionLayer()` cuando se registra el collider. Esto permite filtrar colisiones por tipo (Player, Enemy, Item, Wall, etc.).
+  - `CollisionManager::segmentIntersectsAny(const sf::Vector2f& p0, const sf::Vector2f& p1, Entity* exclude = nullptr, std::uint32_t allowedLayers = 0xFFFFFFFFu)` — nuevo método que permite comprobar si un segmento cruza algún collider. Implementado con un test de segmento vs AABB (Liang-Barsky style). Útil para línea de visión (LOS) y raycasts simples.
 
 Integración con el resto del proyecto
 - `src/entities/EntityManager`:
@@ -51,6 +57,9 @@ Integración con el resto del proyecto
 - Otros cambios:
   - Se añadió la entidad `Wall` para pruebas (`src/entities/Wall.*`).
   - `CMakeLists.txt` actualizado para compilar las nuevas fuentes.
+
+- Integración adicional:
+  - `Enemy` (AI) ahora utiliza `CollisionManager::segmentIntersectsAny` para comprobar línea de visión hacia el jugador durante `detectPlayer()`. Esto hace que los muros bloqueen la detección de enemigos incluso si el jugador está dentro del `visionRange_`.
 
 Limitaciones conocidas
 - Movimiento bloquea todo el desplazamiento si el destino colisiona (no hay "sliding" por eje). Para permitirlo, implementar checks por eje X/Y o lógica de física por ejes.

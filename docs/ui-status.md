@@ -41,6 +41,7 @@ The menus are implemented as simple, self-contained classes that handle their ow
   - `src/scene/PlayScene.cpp` / `.h`: owns a `UIManager`, pushes `PauseMenu` when pressing Escape (toggle), delegates menu `update`/`render` and:
     - Freezes the game logic while `PauseMenu` is active (no player movement, no AI updates).
     - Avoids input propagation to game while any menu is active (menus take priority).
+  - Shows an interaction hint when the player is close to an item: an icon sprite (fallback: text via `core::FontHelper` or a pulsing circle). Pressing the `Interact` action (default `E`) triggers the interaction flow handled by `gameplay::ItemManager` and the UI shows a toast with the result.
   - `src/core/Game.cpp`: calls `InputManager::endFrame()` once per frame (after event processing) so "just pressed" semantics work.
   - `CMakeLists.txt`: added UI source files so they are compiled and linked.
 
@@ -51,6 +52,7 @@ The menus are implemented as simple, self-contained classes that handle their ow
   - Added `endFrame()` to snapshot previous state once per frame; `update(event)` updates current state.
   - `isActionJustPressed`/`isActionPressed`/`isActionReleased` check all bound keys and mouse buttons for an action.
   - New APIs for remapping and UI: `rebindKeys`, `rebindMouse`, `getLastKeyEvent`, `getLastMouseButtonEvent`, `clearLastEvents`, `getBindingName` and getters to expose bindings for display.
+    - `Action::Interact` was added and bound by default to `E`; the UI uses `getBindingName(Action::Interact)` to render the interaction label/icon near items.
 
 ## Behavior & how it works now
 
@@ -72,6 +74,8 @@ The menus are implemented as simple, self-contained classes that handle their ow
    - Verified keyboard navigation (W/S and arrow keys) and left-click Confirm.
    - Confirmed hover highlights and hover animation in `MainMenu`.
    - Verified basic remap flow in `OptionsMenu` (press Controls -> confirm -> press a key or click mouse button to rebind).
+  - Verified interaction hint appears near items and pressing `E` picks up items and shows a toast.
+  - Verified `OptionsMenu` remap flow and that `getBindingName` is used to display the currently-bound key in UI.
 
 ## How to try it locally
 
@@ -117,14 +121,18 @@ While running:
 - `OptionsMenu::applyVolume()` only logs the new value. Hook it to the audio system to actually change game volume.
 - `UIManager::pushMenu(Menu*)` currently takes a raw pointer and takes ownership. Consider overloading to accept `std::unique_ptr<Menu>` to avoid mistakes.
 - Menu visuals are minimal text-only render; layout, alignment, and focus visuals can be improved.
-- There is no mouse support for menus yet. Adding mouse hover/click would be useful for UX.
-- Input binding presentation (showing current bindings on screen) is not implemented. Could be added in `OptionsMenu` or a dedicated controls screen.
+- Menu visuals are minimal text-only render; layout, alignment, and focus visuals can be improved.
+- Basic mouse support is implemented (hover + left click confirm); improvements remain to make the mouse UX richer (scroll, tooltips).
+- Input binding presentation is implemented at a basic level: `OptionsMenu` shows the first binding and supports remap flow, but it should be improved to list multiple bindings and show nicer labels for special keys.
  - The controls remap UI is intentionally minimal: it replaces the selected action's binding with the next raw key or mouse button event. Improvements to implement:
   - full per-action selection and remapping UI (navigate action list and remap the selected action),
   - show multiple bindings per action and more readable names for special keys,
   - add confirmation/cancel during remap and a timeout to abort.
 
 Note: The `getenv` usage in `MenuScene` was replaced with `_dupenv_s` to avoid MSVC deprecation warnings.
+
+Notes
+- `core::FontHelper` is used by menus and `PlayScene` as a central fallback for font loading (helps keep consistent fallbacks between UI and scenes).
 
 ## Next suggested steps
 

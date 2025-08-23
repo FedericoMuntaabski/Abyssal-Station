@@ -5,6 +5,7 @@ namespace entities {
 
 Wall::Wall(Id id, const sf::Vector2f& position, const sf::Vector2f& size)
     : Entity(id, position, size) {
+    setCollisionLayer(Layer::Wall);
     shape_.setSize(size_);
     shape_.setFillColor(sf::Color::Green);
     shape_.setPosition(position_);

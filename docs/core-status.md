@@ -51,6 +51,8 @@ Visión general del core (resumen actualizado)
 - `AssetManager` sigue gestionando texturas y sonidos; carga de fuentes sigue siendo local en `MenuScene` (recomendado mover a `AssetManager`).
 - `Logger` y `Timer` mantienen su papel en el core para trazas y mediciones.
 
+- Se añadió `src/core/FontHelper.{h,cpp}`: helper para localizar y cargar una fuente desde `assets/fonts` o rutas del sistema. `MenuScene` y `PlayScene` usan este helper como fallback para la carga de fuentes/hints. `CMakeLists.txt` fue actualizado para incluir `FontHelper.cpp` en el build.
+
 Quality gates y estado del build
 - Build: el proyecto compila correctamente y el ejecutable se genera en `build/Release/AbyssalStation.exe`.
 - Tests: no se añadieron tests automáticos en esta iteración.

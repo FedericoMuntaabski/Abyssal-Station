@@ -76,6 +76,7 @@ InputManager::InputManager() {
     bindKey(Action::MoveRight, sf::Keyboard::Key::Right);
     bindKey(Action::Confirm, sf::Keyboard::Key::Enter);
     bindKey(Action::Cancel, sf::Keyboard::Key::Escape);
+    bindKey(Action::Interact, sf::Keyboard::Key::E);
     bindKey(Action::Pause, sf::Keyboard::Key::P);
 
     // Default mouse bindings: left click -> Confirm

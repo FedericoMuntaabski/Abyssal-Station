@@ -18,6 +18,8 @@ Enemy::Enemy(Id id, const sf::Vector2f& position, const sf::Vector2f& size, floa
     , attackRange_(attackRange)
     , patrolPoints_(patrolPoints)
 {
+    // mark this entity as Enemy layer
+    setCollisionLayer(entities::Entity::Layer::Enemy);
     shape_.setSize(size_);
     shape_.setFillColor(sf::Color::Red);
     shape_.setPosition(position_);
@@ -39,7 +41,14 @@ const char* Enemy::stateToString(AIState s) {
 bool Enemy::detectPlayer(const sf::Vector2f& playerPos) const {
     sf::Vector2f d = playerPos - position_;
     float dist2 = d.x * d.x + d.y * d.y;
-    return dist2 <= (visionRange_ * visionRange_);
+    if (dist2 > (visionRange_ * visionRange_)) return false;
+    // If collisionManager_ is available, ensure walls do not block vision
+    if (collisionManager_) {
+        sf::Vector2f a = position_ + (size_ * 0.5f);
+        sf::Vector2f b = playerPos + (size_ * 0.5f);
+    if (collisionManager_->segmentIntersectsAny(a, b, const_cast<ai::Enemy*>(this), entities::kLayerMaskWall)) return false;
+    }
+    return true;
 }
 
 // Convenience overload that checks the stored targetPlayer_
@@ -114,7 +123,8 @@ void Enemy::moveTowards(const sf::Vector2f& dst, float dt, collisions::Collision
         return;
     }
 
-    auto blocker = collisionManager->firstColliderForBounds(testBounds, this);
+    // Exclude items from blocking enemy movement
+    auto blocker = collisionManager->firstColliderForBounds(testBounds, this, entities::kLayerMaskAll & ~entities::kLayerMaskItem);
     if (!blocker) {
         intendedPosition_ = intended;
         return;
@@ -125,7 +135,7 @@ void Enemy::moveTowards(const sf::Vector2f& dst, float dt, collisions::Collision
     sf::FloatRect tbx;
     tbx.position.x = slideX.x; tbx.position.y = slideX.y;
     tbx.size.x = size_.x; tbx.size.y = size_.y;
-    if (!collisionManager->firstColliderForBounds(tbx, this)) {
+    if (!collisionManager->firstColliderForBounds(tbx, this, entities::kLayerMaskAll & ~entities::kLayerMaskItem)) {
         intendedPosition_ = slideX;
         return;
     }
@@ -135,7 +145,7 @@ void Enemy::moveTowards(const sf::Vector2f& dst, float dt, collisions::Collision
     sf::FloatRect tby;
     tby.position.x = slideY.x; tby.position.y = slideY.y;
     tby.size.x = size_.x; tby.size.y = size_.y;
-    if (!collisionManager->firstColliderForBounds(tby, this)) {
+    if (!collisionManager->firstColliderForBounds(tby, this, entities::kLayerMaskAll & ~entities::kLayerMaskItem)) {
         intendedPosition_ = slideY;
         return;
     }
@@ -322,6 +332,8 @@ void Enemy::render(sf::RenderWindow& window) {
 }
 
 void Enemy::performMovementPlanning(float deltaTime, collisions::CollisionManager* collisionManager) {
+    // remember pointer for LOS checks
+    collisionManager_ = collisionManager;
     // Decide destination based on state
     switch (state_) {
         case AIState::PATROL:

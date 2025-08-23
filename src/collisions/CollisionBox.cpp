@@ -20,4 +20,6 @@ entities::Entity* CollisionBox::owner() const noexcept {
     return owner_;
 }
 
+// Note: layer is managed by caller; keep default if owner is null
+
 } // namespace collisions

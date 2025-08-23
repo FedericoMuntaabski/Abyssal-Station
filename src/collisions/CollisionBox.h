@@ -16,10 +16,13 @@ public:
     void setBounds(const sf::FloatRect& bounds) noexcept;
 
     entities::Entity* owner() const noexcept;
+    std::uint32_t layer() const noexcept { return layer_; }
+    void setLayer(std::uint32_t l) noexcept { layer_ = l; }
 
 private:
     entities::Entity* owner_;
     sf::FloatRect bounds_;
+    std::uint32_t layer_{0};
 };
 
 } // namespace collisions
