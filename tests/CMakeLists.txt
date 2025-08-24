@@ -126,3 +126,43 @@ set_target_properties(EntityTests PROPERTIES
     CXX_STANDARD 17
     CXX_STANDARD_REQUIRED ON
 )
+
+# Add Collision tests
+add_executable(CollisionTests
+    collisions/CollisionTests.cpp
+    main.cpp
+    # Add the actual source files we're testing
+    ../src/collisions/CollisionBox.cpp
+    ../src/collisions/CollisionManager.cpp
+    ../src/collisions/CollisionSystem.cpp
+    ../src/collisions/CollisionEvents.cpp
+    ../src/collisions/SpatialPartition.cpp
+    ../src/collisions/CollisionDebug.cpp
+    ../src/entities/Entity.cpp
+    ../src/core/Logger.cpp
+)
+
+# Include directories for collision tests
+target_include_directories(CollisionTests PRIVATE 
+    ${CMAKE_SOURCE_DIR}/src
+    ${CMAKE_SOURCE_DIR}/tests
+)
+
+# Link libraries for collision tests
+target_link_libraries(CollisionTests PRIVATE 
+    GTest::gtest
+    GTest::gtest_main
+    SFML::Graphics 
+    SFML::Window 
+    SFML::System 
+    SFML::Audio
+)
+
+# Set C++ standard for collision tests
+set_target_properties(CollisionTests PROPERTIES
+    CXX_STANDARD 17
+    CXX_STANDARD_REQUIRED ON
+)
+
+# Register collision tests with CTest
+gtest_discover_tests(CollisionTests)
