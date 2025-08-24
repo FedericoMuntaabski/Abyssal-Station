@@ -31,6 +31,9 @@ void AIManager::addAgent(entities::Entity* entity, const AIAgentConfig& agentCon
     // Update active agents list
     updateActiveAgentsList();
     
+    // Update performance metrics immediately for testing consistency
+    updatePerformanceMetrics();
+    
     core::Logger::instance().info("[AI] Added AI agent for entity " + std::to_string(entity->id()));
 }
 
@@ -39,6 +42,9 @@ void AIManager::removeAgent(entities::Entity* entity) {
     if (it != agents_.end()) {
         agents_.erase(it);
         updateActiveAgentsList();
+        
+        // Update performance metrics immediately for testing consistency
+        updatePerformanceMetrics();
         
         core::Logger::instance().info("[AI] Removed AI agent for entity " + std::to_string(entity->id()));
     }
@@ -53,6 +59,9 @@ void AIManager::clearAllAgents() {
     agents_.clear();
     activeAgents_.clear();
     legacyEnemies_.clear();
+    
+    // Update performance metrics immediately for testing consistency
+    updatePerformanceMetrics();
     
     core::Logger::instance().info("[AI] Cleared all AI agents");
 }

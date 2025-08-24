@@ -78,6 +78,13 @@ std::vector<PerceptionEvent> PerceptionSystem::updatePerception(
 bool PerceptionSystem::canSee(const sf::Vector2f& observerPos, const sf::Vector2f& observerFacing,
                              const sf::Vector2f& targetPos, collisions::CollisionManager* cm,
                              entities::Entity* excludeEntity) const {
+    // Check distance first for performance and correctness
+    float distance = std::sqrt(std::pow(targetPos.x - observerPos.x, 2) + 
+                              std::pow(targetPos.y - observerPos.y, 2));
+    if (distance > config_.sightRange) {
+        return false;
+    }
+    
     // Check if target is in sight cone
     if (!isInSightCone(observerPos, observerFacing, targetPos)) {
         return false;
