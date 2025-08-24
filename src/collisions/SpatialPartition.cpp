@@ -25,7 +25,7 @@ void QuadTree::clear() {
 }
 
 void QuadTree::insert(const CollisionBox& collider) {
-    // Just store a pointer to the existing collider (don't copy it)
+    // Store a pointer to the existing collider 
     const CollisionBox* colliderPtr = &collider;
     
     if (root_) {
@@ -226,7 +226,7 @@ void SpatialHash::clear() {
 }
 
 void SpatialHash::insert(const CollisionBox& collider) {
-    // Just store a pointer to the existing collider
+    // Store a pointer to the existing collider
     const CollisionBox* colliderPtr = &collider;
     
     // Get all cells this collider overlaps

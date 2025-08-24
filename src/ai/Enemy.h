@@ -5,16 +5,16 @@
 #include <SFML/Graphics/RectangleShape.hpp>
 #include <SFML/Graphics/RenderWindow.hpp>
 #include "entities/Entity.h"
+#include "AIState.h"
+#include "AISystem.h"
 #include <vector>
 #include <cstdint>
+#include <memory>
 
 namespace entities { class Player; }
 namespace collisions { class CollisionManager; }
 
 namespace ai {
-
-// Initial simple AI states for enemies
-enum class AIState { IDLE, PATROL, CHASE, ATTACK, RETURN };
 
 class Enemy : public entities::Entity {
 public:
@@ -26,17 +26,23 @@ public:
           float speed = 100.f,
           float visionRange = 200.f,
           float attackRange = 24.f,
-          const std::vector<sf::Vector2f>& patrolPoints = {});
+          const std::vector<sf::Vector2f>& patrolPoints = {},
+          BehaviorProfile profile = BehaviorProfile::NEUTRAL);
     ~Enemy() override;
 
     // Game loop hooks
     void update(float deltaTime) override;
-        // Update using an external player position (used by managers)
-        void update(float deltaTime, const sf::Vector2f& playerPos);
+    void update(float deltaTime, const sf::Vector2f& playerPos);
     void render(sf::RenderWindow& window) override;
 
-    // State control
+    // Enhanced AI integration
+    void setAIAgent(std::unique_ptr<AIAgent> agent);
+    AIAgent* getAIAgent() const { return aiAgent_.get(); }
+    bool hasAIAgent() const { return aiAgent_ != nullptr; }
+
+    // Legacy state control (for backward compatibility)
     void changeState(AIState newState);
+    AIState getCurrentState() const;
 
     // Player target for detection/chase (optional)
     void setTargetPlayer(entities::Player* player) { targetPlayer_ = player; }
@@ -45,25 +51,51 @@ public:
     void setSpeed(float s) { speed_ = s; }
     void setVisionRange(float r) { visionRange_ = r; }
     void setAttackRange(float r) { attackRange_ = r; }
+    void setBehaviorProfile(BehaviorProfile profile);
 
-private:
-    // Returns true if the given player position is within visionRange_
-        bool detectPlayer(const sf::Vector2f& playerPos) const;
-    // Convenience overload that checks the stored targetPlayer_
+    // Enhanced functionality
+    void setPatrolPoints(const std::vector<sf::Vector2f>& points);
+    void addPatrolPoint(const sf::Vector2f& point);
+    const std::vector<sf::Vector2f>& getPatrolPoints() const { return patrolPoints_; }
+
+    // Event handling
+    void onDamageReceived(float damage, entities::Entity* source);
+    void onSoundHeard(const sf::Vector2f& soundPosition, float intensity);
+
+    // Legacy methods (for backward compatibility)
+    bool detectPlayer(const sf::Vector2f& playerPos) const;
     bool detectPlayer() const;
     void moveTowards(const sf::Vector2f& dst, float dt);
-    // Collision-aware movement: will consult CollisionManager and attempt simple sliding
     void moveTowards(const sf::Vector2f& dst, float dt, collisions::CollisionManager* collisionManager);
-    static const char* stateToString(AIState s);
-    // Core FSM runner used internally
-    void runFSM(float deltaTime, const sf::Vector2f* playerPos);
-    // Find patrol point index nearest to current position
-    std::size_t findNearestPatrolIndex() const;
+    
+    // Intended movement API (for collision handling)
+    sf::Vector2f computeIntendedMove(float deltaTime) const;
+    void commitMove(const sf::Vector2f& newPosition);
+    void performMovementPlanning(float deltaTime, collisions::CollisionManager* collisionManager);
 
-    AIState state_{AIState::IDLE};
+    // Attack functionality
+    void attack(entities::Player& player);
+    void setAttackCooldown(float cd) { attackCooldown_ = cd; }
+
+    // Debug visualization
+    void setVisionColors(const sf::Color& fill, const sf::Color& outline) { visionFillColor_ = fill; visionOutlineColor_ = outline; }
+    void setFacingDirection(const sf::Vector2f& dir) { facingDir_ = dir; }
+
+private:
+    // Legacy FSM for backward compatibility
+    void runLegacyFSM(float deltaTime, const sf::Vector2f* playerPos);
+    std::size_t findNearestPatrolIndex() const;
+    static const char* legacyStateToString(AIState s);
+
+    // Enhanced AI agent (optional)
+    std::unique_ptr<AIAgent> aiAgent_;
+    
+    // Legacy state management
+    AIState legacyState_{AIState::IDLE};
     float speed_;
     float visionRange_;
     float attackRange_;
+    BehaviorProfile behaviorProfile_;
 
     std::vector<sf::Vector2f> patrolPoints_;
     std::size_t currentPatrolIndex_{0};
@@ -88,21 +120,9 @@ private:
     float attackTimer_{0.f};
     // Intended movement API (compute but don't commit until collision checks)
     sf::Vector2f intendedPosition_{0.f, 0.f};
-public:
-    // Compute intended move given deltaTime (used by Collision checks)
-    sf::Vector2f computeIntendedMove(float deltaTime) const;
-    // Commit the move after collision checks
-    void commitMove(const sf::Vector2f& newPosition);
-    // Basic attack: reduce player's health if within attackRange
-    void attack(entities::Player& player);
-    // Configure attack cooldown (seconds)
-    void setAttackCooldown(float cd) { attackCooldown_ = cd; }
-    // Configure debug vision colors
-    void setVisionColors(const sf::Color& fill, const sf::Color& outline) { visionFillColor_ = fill; visionOutlineColor_ = outline; }
-    // Expose facing direction (useful for tests/tuning)
-    void setFacingDirection(const sf::Vector2f& dir) { facingDir_ = dir; }
-    // Plan movement using collision manager (will set intendedPosition_ appropriately)
-    void performMovementPlanning(float deltaTime, collisions::CollisionManager* collisionManager);
+    
+    // Mode selection
+    bool useEnhancedAI_{false};
 };
 
 } // namespace ai

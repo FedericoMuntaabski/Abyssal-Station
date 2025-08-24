@@ -1,4 +1,5 @@
 #include "UIManager.h"
+#include "../core/ConfigManager.h"
 #include "../core/Logger.h"
 #include <SFML/Graphics/Text.hpp>
 #include <SFML/Graphics/Font.hpp>
@@ -34,8 +35,8 @@ void UIManager::pushMenu(Menu* menu, AnimationType animation) {
     entry.isEntering = (animation != AnimationType::None);
     entry.animationTime = 0.0f;
     
+    // activate() already calls onEnter() via Menu::activate(), avoid double-calling lifecycle hooks
     menu->activate();
-    menu->onEnter();
     
     core::Logger::instance().info(std::string("UIManager: push menu ") + menu->name());
     m_menus.push_back(std::move(entry));
@@ -51,10 +52,10 @@ void UIManager::popMenu(AnimationType animation) {
         entry.exitAnimation = animation;
         entry.isExiting = true;
         entry.animationTime = 0.0f;
-        top->onExit();
+        // Mark for exit; let deactivate() handle onExit() to avoid duplicate calls
         top->deactivate();
     } else {
-        top->onExit();
+        // deactivate() will call onExit()
         top->deactivate();
         core::Logger::instance().info(std::string("UIManager: pop menu ") + top->name());
         m_menus.pop_back();
@@ -111,7 +112,7 @@ size_t UIManager::menuStackSize() const noexcept {
 void UIManager::clear() {
     for (auto& entry : m_menus) {
         if (entry.menu) {
-            entry.menu->onExit();
+            // deactivate() will call onExit() if active
             entry.menu->deactivate();
         }
     }

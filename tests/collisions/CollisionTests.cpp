@@ -246,35 +246,39 @@ protected:
         
         quadTree = std::make_unique<QuadTree>(config);
         
-        // Create test entities
+        // Create test entities and their collision boxes
         for (int i = 0; i < 10; ++i) {
             auto entity = std::make_unique<MockEntity>(i, 
                 sf::Vector2f(i * 8.f, i * 8.f), sf::Vector2f(5.f, 5.f));
+            
+            // Create a collision box for this entity and store it
+            auto collisionBox = std::make_unique<CollisionBox>(entity.get(), entity->getBounds());
+            collisionBoxes.push_back(std::move(collisionBox));
+            
             entities.push_back(std::move(entity));
         }
     }
 
     std::unique_ptr<QuadTree> quadTree;
     std::vector<std::unique_ptr<MockEntity>> entities;
+    std::vector<std::unique_ptr<CollisionBox>> collisionBoxes;
 };
 
 TEST_F(SpatialPartitionTest, QuadTreeInsertion) {
-    // Insert all entities
-    for (const auto& entity : entities) {
-        CollisionBox collider(entity.get(), entity->getBounds());
-        quadTree->insert(collider);
+    // Insert all collision boxes
+    for (const auto& collisionBox : collisionBoxes) {
+        quadTree->insert(*collisionBox);
     }
     
     auto stats = quadTree->getStats();
     EXPECT_GT(stats.totalNodes, 1); // Should have subdivided
-    EXPECT_EQ(stats.totalObjects, static_cast<int>(entities.size()));
+    EXPECT_EQ(stats.totalObjects, static_cast<int>(collisionBoxes.size()));
 }
 
 TEST_F(SpatialPartitionTest, QuadTreeQuery) {
-    // Insert entities
-    for (const auto& entity : entities) {
-        CollisionBox collider(entity.get(), entity->getBounds());
-        quadTree->insert(collider);
+    // Insert collision boxes
+    for (const auto& collisionBox : collisionBoxes) {
+        quadTree->insert(*collisionBox);
     }
     
     // Query for entities in a specific area
@@ -283,14 +287,13 @@ TEST_F(SpatialPartitionTest, QuadTreeQuery) {
     
     // Should find some entities but not all
     EXPECT_GT(results.size(), 0);
-    EXPECT_LT(results.size(), entities.size());
+    EXPECT_LT(results.size(), collisionBoxes.size());
 }
 
 TEST_F(SpatialPartitionTest, QuadTreeSegmentQuery) {
-    // Insert entities
-    for (const auto& entity : entities) {
-        CollisionBox collider(entity.get(), entity->getBounds());
-        quadTree->insert(collider);
+    // Insert collision boxes
+    for (const auto& collisionBox : collisionBoxes) {
+        quadTree->insert(*collisionBox);
     }
     
     // Query along a line
@@ -314,8 +317,8 @@ protected:
         
         // Create a more complex scenario
         player = std::make_unique<MockEntity>(1, sf::Vector2f(10.f, 10.f), sf::Vector2f(5.f, 5.f));
-        wall1 = std::make_unique<MockEntity>(2, sf::Vector2f(15.f, 8.f), sf::Vector2f(5.f, 10.f));
-        wall2 = std::make_unique<MockEntity>(3, sf::Vector2f(5.f, 15.f), sf::Vector2f(10.f, 5.f));
+        wall1 = std::make_unique<MockEntity>(2, sf::Vector2f(14.f, 9.f), sf::Vector2f(5.f, 5.f));
+        wall2 = std::make_unique<MockEntity>(3, sf::Vector2f(9.f, 14.f), sf::Vector2f(5.f, 5.f));
         item = std::make_unique<MockEntity>(4, sf::Vector2f(12.f, 12.f), sf::Vector2f(2.f, 2.f));
         
         player->setCollisionLayer(Entity::Layer::Player);

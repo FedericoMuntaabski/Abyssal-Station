@@ -6,16 +6,22 @@
 #include <SFML/Graphics/ConvexShape.hpp>
 #include <cmath>
 #include <sstream>
+#include <limits>
+
+#ifndef M_PI
+#define M_PI 3.14159265358979323846
+#endif
 
 namespace ai {
 
 using core::Logger;
 
-Enemy::Enemy(Id id, const sf::Vector2f& position, const sf::Vector2f& size, float speed, float visionRange, float attackRange, const std::vector<sf::Vector2f>& patrolPoints)
+Enemy::Enemy(Id id, const sf::Vector2f& position, const sf::Vector2f& size, float speed, float visionRange, float attackRange, const std::vector<sf::Vector2f>& patrolPoints, BehaviorProfile profile)
     : entities::Entity(id, position, size)
     , speed_(speed)
     , visionRange_(visionRange)
     , attackRange_(attackRange)
+    , behaviorProfile_(profile)
     , patrolPoints_(patrolPoints)
 {
     // mark this entity as Enemy layer
@@ -23,30 +29,105 @@ Enemy::Enemy(Id id, const sf::Vector2f& position, const sf::Vector2f& size, floa
     shape_.setSize(size_);
     shape_.setFillColor(sf::Color::Red);
     shape_.setPosition(position_);
+    
+    // Initialize enhanced AI by default
+    AIAgentConfig config;
+    config.profile = profile;
+    config.speed = speed;
+    config.attackRange = attackRange;
+    config.perception.sightRange = visionRange;
+    
+    aiAgent_ = std::make_unique<AIAgent>(this, config);
+    aiAgent_->setPatrolPoints(patrolPoints);
+    useEnhancedAI_ = true;
 }
 
 Enemy::~Enemy() = default;
 
-const char* Enemy::stateToString(AIState s) {
-    switch (s) {
-        case AIState::IDLE: return "IDLE";
-        case AIState::PATROL: return "PATROL";
-        case AIState::CHASE: return "CHASE";
-        case AIState::ATTACK: return "ATTACK";
-        case AIState::RETURN: return "RETURN";
-        default: return "UNKNOWN";
+void Enemy::setAIAgent(std::unique_ptr<AIAgent> agent) {
+    aiAgent_ = std::move(agent);
+    useEnhancedAI_ = aiAgent_ != nullptr;
+}
+
+void Enemy::setBehaviorProfile(BehaviorProfile profile) {
+    behaviorProfile_ = profile;
+    if (aiAgent_) {
+        AIAgentConfig config = aiAgent_->getConfig();
+        config.profile = profile;
+        aiAgent_->setConfig(config);
     }
+}
+
+void Enemy::setPatrolPoints(const std::vector<sf::Vector2f>& points) {
+    patrolPoints_ = points;
+    if (aiAgent_) {
+        aiAgent_->setPatrolPoints(points);
+    }
+}
+
+void Enemy::addPatrolPoint(const sf::Vector2f& point) {
+    patrolPoints_.push_back(point);
+    if (aiAgent_) {
+        aiAgent_->addPatrolPoint(point);
+    }
+}
+
+void Enemy::onDamageReceived(float damage, entities::Entity* source) {
+    if (aiAgent_) {
+        aiAgent_->onDamageReceived(damage, source);
+    }
+}
+
+void Enemy::onSoundHeard(const sf::Vector2f& soundPosition, float intensity) {
+    if (aiAgent_) {
+        aiAgent_->onSoundHeard(soundPosition, intensity);
+    }
+}
+
+// Legacy state methods for backward compatibility
+const char* Enemy::legacyStateToString(AIState s) {
+    return stateToString(s);
+}
+
+void Enemy::changeState(AIState newState) {
+    if (useEnhancedAI_ && aiAgent_) {
+        aiAgent_->changeState(newState);
+    } else {
+        if (newState == legacyState_) return;
+        
+        // Only log transitions if cooldown expired
+        if (logTimer_ <= 0.f) {
+            std::ostringstream ss;
+            ss << "[AI] Enemy " << id_ << " -> " << legacyStateToString(newState);
+            Logger::instance().info(ss.str());
+            logTimer_ = logCooldown_;
+        }
+        
+        // If entering patrol or return, pick the nearest patrol point as the target
+        if ((newState == AIState::PATROL || newState == AIState::RETURN) && !patrolPoints_.empty()) {
+            currentPatrolIndex_ = findNearestPatrolIndex();
+        }
+        legacyState_ = newState;
+    }
+}
+
+AIState Enemy::getCurrentState() const {
+    if (useEnhancedAI_ && aiAgent_) {
+        return aiAgent_->getCurrentState();
+    }
+    return legacyState_;
 }
 
 bool Enemy::detectPlayer(const sf::Vector2f& playerPos) const {
     sf::Vector2f d = playerPos - position_;
     float dist2 = d.x * d.x + d.y * d.y;
     if (dist2 > (visionRange_ * visionRange_)) return false;
+    
     // If collisionManager_ is available, ensure walls do not block vision
     if (collisionManager_) {
         sf::Vector2f a = position_ + (size_ * 0.5f);
         sf::Vector2f b = playerPos + (size_ * 0.5f);
-    if (collisionManager_->segmentIntersectsAny(a, b, const_cast<ai::Enemy*>(this), entities::kLayerMaskWall)) return false;
+        if (collisionManager_->segmentIntersectsAny(a, b, const_cast<ai::Enemy*>(this), entities::kLayerMaskWall)) return false;
     }
     return true;
 }
@@ -55,22 +136,6 @@ bool Enemy::detectPlayer(const sf::Vector2f& playerPos) const {
 bool Enemy::detectPlayer() const {
     if (!targetPlayer_) return false;
     return detectPlayer(targetPlayer_->position());
-}
-
-void Enemy::changeState(AIState newState) {
-    if (newState == state_) return;
-    // Only log transitions if cooldown expired
-    if (logTimer_ <= 0.f) {
-        std::ostringstream ss;
-        ss << "[AI] Enemy " << id_ << " -> " << stateToString(newState);
-        Logger::instance().info(ss.str());
-        logTimer_ = logCooldown_;
-    }
-    // If entering patrol or return, pick the nearest patrol point as the target
-    if ((newState == AIState::PATROL || newState == AIState::RETURN) && !patrolPoints_.empty()) {
-        currentPatrolIndex_ = findNearestPatrolIndex();
-    }
-    state_ = newState;
 }
 
 std::size_t Enemy::findNearestPatrolIndex() const {
@@ -169,23 +234,36 @@ void Enemy::commitMove(const sf::Vector2f& newPosition) {
 }
 
 void Enemy::update(float deltaTime) {
-    // Forward to core FSM without explicit player position (uses stored targetPlayer_)
-    runFSM(deltaTime, nullptr);
+    if (useEnhancedAI_ && aiAgent_) {
+        // Use enhanced AI system
+        // Note: This requires EntityManager and CollisionManager to be passed
+        // For now, fall back to legacy system
+        runLegacyFSM(deltaTime, nullptr);
+    } else {
+        // Use legacy FSM
+        runLegacyFSM(deltaTime, nullptr);
+    }
 }
 
 void Enemy::update(float deltaTime, const sf::Vector2f& playerPos) {
-    runFSM(deltaTime, &playerPos);
+    if (useEnhancedAI_ && aiAgent_) {
+        // Enhanced AI would be updated by AIManager, not here
+        // For backward compatibility, still run legacy FSM
+        runLegacyFSM(deltaTime, &playerPos);
+    } else {
+        runLegacyFSM(deltaTime, &playerPos);
+    }
 }
 
-// Core FSM runner. playerPos pointer is optional; when provided it is used for detection
-void Enemy::runFSM(float deltaTime, const sf::Vector2f* playerPos) {
+// Legacy FSM for backward compatibility
+void Enemy::runLegacyFSM(float deltaTime, const sf::Vector2f* playerPos) {
     // Update log timer
     if (logTimer_ > 0.f) logTimer_ -= deltaTime;
     // Update attack timer
     if (attackTimer_ > 0.f) attackTimer_ -= deltaTime;
 
     // Basic FSM
-    switch (state_) {
+    switch (legacyState_) {
         case AIState::IDLE:
         {
             // If has patrol points, start patrolling
@@ -299,74 +377,57 @@ void Enemy::render(sf::RenderWindow& window) {
     // Draw AI shape
     window.draw(shape_);
 
-    // Debug: draw vision cone (65 degrees) in direction of facingDir_
-    const float coneHalfAngleDeg = 32.5f; // half of 65 degrees
-    const float coneAngleRad = 65.f * 3.14159265f / 180.f;
-    const float half = coneAngleRad * 0.5f;
-    sf::Vector2f center = position_ + (size_ * 0.5f);
-
-    // Normalize facingDir_
-    sf::Vector2f fd = facingDir_;
-    float flen = std::sqrt(fd.x*fd.x + fd.y*fd.y);
-    if (flen < 0.0001f) fd = sf::Vector2f(1.f, 0.f); else fd /= flen;
-
-    // Compute cone triangle points: center, left, right
-    // Rotate facing vector by +/- half-angle
-    float cs = std::cos(half);
-    float sn = std::sin(half);
-    // left = R(-half) * fd, right = R(+half) * fd (rotation matrix)
-    sf::Vector2f left = sf::Vector2f(fd.x * cs - fd.y * sn, fd.x * sn + fd.y * cs);
-    sf::Vector2f right = sf::Vector2f(fd.x * cs + fd.y * sn, -fd.x * sn + fd.y * cs);
-    left *= visionRange_;
-    right *= visionRange_;
-
-    sf::ConvexShape cone;
-    cone.setPointCount(3);
-    cone.setPoint(0, center);
-    cone.setPoint(1, center + left);
-    cone.setPoint(2, center + right);
-    cone.setFillColor(visionFillColor_);
-    cone.setOutlineColor(visionOutlineColor_);
-    cone.setOutlineThickness(1.f);
-    window.draw(cone);
-}
-
-void Enemy::performMovementPlanning(float deltaTime, collisions::CollisionManager* collisionManager) {
-    // remember pointer for LOS checks
-    collisionManager_ = collisionManager;
-    // Decide destination based on state
-    switch (state_) {
-        case AIState::PATROL:
-        case AIState::RETURN:
-        {
-            if (patrolPoints_.empty()) { intendedPosition_ = position_; return; }
-            const sf::Vector2f& dest = patrolPoints_[currentPatrolIndex_];
-            moveTowards(dest, deltaTime, collisionManager);
-            break;
-        }
-        case AIState::CHASE:
-        {
-            if (!targetPlayer_) { intendedPosition_ = position_; return; }
-            moveTowards(targetPlayer_->position(), deltaTime, collisionManager);
-            break;
-        }
-        default:
-            // Idle or default: no movement
-            intendedPosition_ = position_;
-            break;
+    // Debug vision cone (if enabled)
+    // This could be moved to a debug visualization system
+    if (legacyState_ == AIState::CHASE || legacyState_ == AIState::PATROL) {
+        // Draw vision cone for debugging
+        sf::ConvexShape visionCone;
+        visionCone.setPointCount(3);
+        sf::Vector2f center = position_ + size_ * 0.5f;
+        visionCone.setPoint(0, center);
+        
+        float angleRad = std::atan2(facingDir_.y, facingDir_.x);
+        float halfAngle = 32.5f * static_cast<float>(M_PI) / 180.0f; // 65 degrees / 2
+        
+        sf::Vector2f leftPoint = center + sf::Vector2f(
+            visionRange_ * std::cos(angleRad - halfAngle),
+            visionRange_ * std::sin(angleRad - halfAngle)
+        );
+        sf::Vector2f rightPoint = center + sf::Vector2f(
+            visionRange_ * std::cos(angleRad + halfAngle),
+            visionRange_ * std::sin(angleRad + halfAngle)
+        );
+        
+        visionCone.setPoint(1, leftPoint);
+        visionCone.setPoint(2, rightPoint);
+        visionCone.setFillColor(visionFillColor_);
+        visionCone.setOutlineColor(visionOutlineColor_);
+        visionCone.setOutlineThickness(1.0f);
+        
+        window.draw(visionCone);
     }
 }
 
 void Enemy::attack(entities::Player& player) {
-    // check distance
-    sf::Vector2f d = player.position() - position_;
-    float dist2 = d.x*d.x + d.y*d.y;
-    if (dist2 <= (attackRange_ * attackRange_)) {
-        // simple fixed damage
-    int damage = 10;
-    player.applyDamage(damage);
-    Logger::instance().info("[AI] Enemy " + std::to_string(id_) + " atacó Player " + std::to_string(player.id()));
+    if (attackTimer_ > 0.f) return; // Still on cooldown
+    
+    player.applyDamage(10); // Deal 10 damage
+    attackTimer_ = attackCooldown_;
+    
+    Logger::instance().info("[AI] Enemy " + std::to_string(id_) + " attacked player for 10 damage");
+}
+
+void Enemy::performMovementPlanning(float deltaTime, collisions::CollisionManager* collisionManager) {
+    collisionManager_ = collisionManager;
+    
+    if (useEnhancedAI_ && aiAgent_) {
+        // Enhanced AI handles its own movement planning
+        // The movement would be handled through the AIAgent's pathfinding system
+        return;
     }
+    
+    // Legacy movement planning
+    // This is handled within the FSM moveTowards calls
 }
 
 } // namespace ai

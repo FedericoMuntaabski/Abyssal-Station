@@ -8,6 +8,8 @@
 
 namespace scene { class SceneManager; }
 
+namespace core { class ConfigManager; }
+
 class Game {
 public:
     // Construct a Game with an optional window size and title
@@ -43,6 +45,8 @@ private:
 
     // Scene manager for game scenes
     std::unique_ptr<scene::SceneManager> m_sceneManager;
+    // Global config manager (owned by the executable)
+    std::unique_ptr<core::ConfigManager> m_configManager;
 };
 
 #endif // A2B9B8_GAME_H

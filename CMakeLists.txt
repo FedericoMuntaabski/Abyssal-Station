@@ -60,6 +60,16 @@ add_executable(AbyssalStation
     src/entities/MovementHelper.h
 
     # AI module
+    src/ai/AIState.cpp
+    src/ai/AIState.h
+    src/ai/Perception.cpp
+    src/ai/Perception.h
+    src/ai/Pathfinding.cpp
+    src/ai/Pathfinding.h
+    src/ai/AISystem.cpp
+    src/ai/AISystem.h
+    src/ai/AIManager.cpp
+    src/ai/AIManager.h
     src/ai/Enemy.cpp
     src/ai/Enemy.h
     src/ai/EnemyManager.cpp
