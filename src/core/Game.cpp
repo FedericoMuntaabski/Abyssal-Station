@@ -1,5 +1,6 @@
 #include "Game.h"
 #include "core/AssetManager.h"
+#include "core/ConfigManager.h"
 #include "../scene/SceneManager.h"
 #include "../scene/MenuScene.h"
 #include "../input/InputManager.h"
@@ -71,6 +72,13 @@ Game::Game(unsigned int width, unsigned int height, const std::string& title)
     if (!inputManager.loadBindings(bindingsPath)) {
         std::cerr << "Using default input bindings (config file not found or invalid)\n";
     }
+
+    // Create global ConfigManager (owned by Game, not by tests)
+    m_configManager = std::make_unique<core::ConfigManager>("config");
+    if (!m_configManager->loadConfig()) {
+        // If load failed, ConfigManager has fallback defaults; still continue
+        std::cerr << "Warning: failed to load config, using defaults\n";
+    }
 }
 
 Game::~Game()
@@ -112,9 +120,9 @@ void Game::run()
         m_sound->play();
     }
 
-    // Initialize scene manager and push the initial MenuScene
+    // Initialize scene manager and push the initial MenuScene, passing the ConfigManager
     m_sceneManager = std::make_unique<scene::SceneManager>();
-    m_sceneManager->push(std::make_unique<scene::MenuScene>(m_sceneManager.get()));
+    m_sceneManager->push(std::make_unique<scene::MenuScene>(m_sceneManager.get(), m_configManager.get()));
 
     while (m_isRunning && m_window.isOpen()) {
         // Calculate delta time

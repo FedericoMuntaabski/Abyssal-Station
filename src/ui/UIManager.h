@@ -11,6 +11,9 @@
 #include <string>
 #include <unordered_map>
 
+// Forward declarations
+namespace core { class ConfigManager; }
+
 namespace ui {
 
 // Event callbacks for decoupled communication with other systems
@@ -97,6 +100,10 @@ public:
     // Event system
     void setEventCallbacks(const UIEvents& events) { m_events = events; }
     const UIEvents& getEventCallbacks() const noexcept { return m_events; }
+
+    // Config manager forwarding for menus that need to access persistent settings
+    void setConfigManager(core::ConfigManager* cfg) { m_configManager = cfg; }
+    core::ConfigManager* getConfigManager() const noexcept { return m_configManager; }
     
     // Trigger events (called by menus)
     void triggerStartGame();
@@ -148,6 +155,8 @@ private:
     
     // Event callbacks
     UIEvents m_events;
+    // Optional pointer to ConfigManager (not owned)
+    core::ConfigManager* m_configManager{nullptr};
     
     // Animation helpers
     void updateAnimations(float dt);

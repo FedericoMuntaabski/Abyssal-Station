@@ -78,8 +78,9 @@ void MainMenu::handleInput() {
             }
         } else if (choice == "Opciones") {
             if (m_uiManager) {
-                // Open OptionsMenu with enhanced animation
-                m_uiManager->pushMenu(new OptionsMenu(m_manager), AnimationType::Slide);
+                // Open OptionsMenu with enhanced animation and pass ConfigManager if available
+                core::ConfigManager* cfg = m_uiManager->getConfigManager();
+                m_uiManager->pushMenu(new OptionsMenu(m_manager, cfg), AnimationType::Slide);
             } else {
                 core::Logger::instance().info("Options menu not implemented yet.");
             }

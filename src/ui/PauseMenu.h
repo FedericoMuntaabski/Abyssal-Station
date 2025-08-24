@@ -34,6 +34,12 @@ private:
     std::size_t m_selected{0};
     float m_startY{120.f};
     float m_spacing{36.f};
+    // Device detection and input helper
+    std::unique_ptr<InputHelper> m_inputHelper;
+    InputHelper::DeviceType m_activeDevice{InputHelper::DeviceType::Keyboard};
+    void updateActiveDevice();
+    void handleMouseHover(sf::RenderWindow& window);
+    std::string getContextualHint() const;
 };
 
 } // namespace ui
