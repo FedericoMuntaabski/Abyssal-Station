@@ -217,3 +217,70 @@ set_target_properties(AITests PROPERTIES
 
 # Register AI tests with CTest
 gtest_discover_tests(AITests)
+
+# Create UI/Scene Navigation tests executable
+add_executable(SceneNavigationTests
+    ui/SceneNavigationTests.cpp
+    main.cpp
+    # Add the actual source files we're testing
+    ../src/ui/MainMenu.cpp
+    ../src/ui/OptionsMenu.cpp
+    ../src/ui/PauseMenu.cpp
+    ../src/ui/UIManager.cpp
+    ../src/ui/Menu.cpp
+    ../src/ui/InputHelper.cpp
+    ../src/scene/SceneManager.cpp
+    ../src/scene/MenuScene.cpp
+    ../src/scene/PlayScene.cpp
+    ../src/input/InputManager.cpp
+    ../src/core/Logger.cpp
+    ../src/core/FontHelper.cpp
+    ../src/entities/EntityManager.cpp
+    ../src/entities/Entity.cpp
+    ../src/entities/Player.cpp
+    ../src/entities/Wall.cpp
+    ../src/ai/Enemy.cpp
+    ../src/ai/EnemyManager.cpp
+    ../src/ai/AIState.cpp
+    ../src/ai/Perception.cpp
+    ../src/ai/Pathfinding.cpp
+    ../src/ai/AISystem.cpp
+    ../src/ai/AIManager.cpp
+    ../src/entities/MovementHelper.cpp
+    ../src/collisions/CollisionManager.cpp
+    ../src/collisions/CollisionBox.cpp
+    ../src/collisions/CollisionSystem.cpp
+    ../src/collisions/CollisionEvents.cpp
+    ../src/collisions/SpatialPartition.cpp
+    ../src/collisions/CollisionDebug.cpp
+    ../src/gameplay/ItemManager.cpp
+    ../src/gameplay/PuzzleManager.cpp
+    ../src/gameplay/Item.cpp
+    ../src/gameplay/Puzzle.cpp
+)
+
+# Include directories for scene navigation tests
+target_include_directories(SceneNavigationTests PRIVATE 
+    ${CMAKE_SOURCE_DIR}/src
+    ${CMAKE_SOURCE_DIR}/tests
+)
+
+# Link libraries for scene navigation tests
+target_link_libraries(SceneNavigationTests PRIVATE 
+    GTest::gtest 
+    GTest::gtest_main
+    SFML::Graphics 
+    SFML::Window 
+    SFML::System
+    SFML::Audio
+    nlohmann_json::nlohmann_json
+)
+
+# Set C++ standard for scene navigation tests
+set_target_properties(SceneNavigationTests PROPERTIES
+    CXX_STANDARD 17
+    CXX_STANDARD_REQUIRED ON
+)
+
+# Register scene navigation tests with CTest
+gtest_discover_tests(SceneNavigationTests)

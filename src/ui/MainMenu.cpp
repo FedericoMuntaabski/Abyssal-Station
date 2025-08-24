@@ -21,7 +21,7 @@ MainMenu::MainMenu(scene::SceneManager* manager, ui::UIManager* uiManager)
     : Menu("MainMenu"), m_manager(manager), m_uiManager(uiManager) {
     
     m_inputHelper = std::make_unique<InputHelper>();
-    m_options = {"Start Game", "Options", "Exit"};
+    m_options = {"Jugar (Solo)", "Crear Sala", "Opciones", "Salir"};
     m_scales.assign(m_options.size(), 1.0f);
     m_glowIntensity.assign(m_options.size(), 0.0f);
 }
@@ -60,7 +60,7 @@ void MainMenu::handleInput() {
         const auto& choice = m_options[m_selected];
         core::Logger::instance().info("MainMenu selected: " + choice);
         
-        if (choice == "Start Game") {
+        if (choice == "Jugar (Solo)") {
             if (m_uiManager) {
                 m_uiManager->triggerStartGame();
             }
@@ -68,14 +68,22 @@ void MainMenu::handleInput() {
                 // Push PlayScene
                 m_manager->push(std::make_unique<scene::PlayScene>(m_manager));
             }
-        } else if (choice == "Options") {
+        } else if (choice == "Crear Sala") {
+            // TODO: Placeholder for multiplayer room creation
+            core::Logger::instance().info("Crear Sala selected - Funcionalidad pendiente de implementación");
+            if (m_uiManager) {
+                // Show a notification that this feature is pending
+                m_uiManager->showNotification("Crear Sala: Funcionalidad pendiente para implementación futura", 
+                                            ui::UIManager::NotificationPriority::Normal, 4.0f, sf::Color::Yellow);
+            }
+        } else if (choice == "Opciones") {
             if (m_uiManager) {
                 // Open OptionsMenu with enhanced animation
                 m_uiManager->pushMenu(new OptionsMenu(m_manager), AnimationType::Slide);
             } else {
                 core::Logger::instance().info("Options menu not implemented yet.");
             }
-        } else if (choice == "Exit") {
+        } else if (choice == "Salir") {
             if (m_uiManager) {
                 m_uiManager->triggerExit();
             }
