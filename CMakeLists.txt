@@ -67,8 +67,17 @@ add_executable(AbyssalStation
 
     # Collisions module
     src/collisions/CollisionBox.cpp
+    src/collisions/CollisionBox.h
     src/collisions/CollisionManager.cpp
+    src/collisions/CollisionManager.h
     src/collisions/CollisionSystem.cpp
+    src/collisions/CollisionSystem.h
+    src/collisions/CollisionEvents.cpp
+    src/collisions/CollisionEvents.h
+    src/collisions/SpatialPartition.cpp
+    src/collisions/SpatialPartition.h
+    src/collisions/CollisionDebug.cpp
+    src/collisions/CollisionDebug.h
     # Gameplay: items & puzzles
     src/gameplay/Item.cpp
     src/gameplay/ItemManager.cpp
