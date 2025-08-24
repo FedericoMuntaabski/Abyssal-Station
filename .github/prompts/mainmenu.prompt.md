@@ -142,47 +142,58 @@ Checklist final (incluir en la especificación entregada al desarrollador):
 	- [ ] Crear SceneManager / integrar con GameState para pantalla de carga de 5 segundos.
 	- [ ] Documentar cambios en `docs/modules/` y añadir pruebas en `tests/ui/`.
 
+Hecho (resumen de lo ya implementado en la rama `feature/menus`)
+-----------------------------------------------------------
+Los siguientes puntos ya fueron implementados o parcialmente implementados en la rama `feature/menus` y por tanto se eliminan de la lista de trabajo pendiente:
+
+- Cursor personalizado cargado y activo: `src/ui/CustomCursor.*` (se oculta el cursor del sistema cuando la ventana está en foco).
+- Pantalla de carga (`LoadingScene`) creada y muestra el texto requerido y una barra/progreso estilizada; transiciones de 5s implementadas.
+- Ajustes visuales del `MainMenu`: título y texto de menú aumentados (~20%), espaciado mejorado y render con fuentes disponibles (`Main_font.ttf`, `Secundary_font.ttf`).
+- Sonidos UI (`hover_select.wav`, `confirm.wav`) cargados y usados para hover/confirm en el menú; música de fondo `background_music.wav` reproducida en loop desde `MainMenu`.
+- `AssetManager` ampliado con utilidades de invalidación y recarga (`hasTexture`, `removeTexture`, `reloadTexturesFrom`).
+- Correcciones de `Logger`/Console para soportar UTF-8 y mostrar acentos correctamente en Windows.
+- `Game` modificado para no dibujar un background global; las escenas gestionan ahora sus propios fondos (evita mostrar texturas obsoletas).
+- Archivos y docs añadidos: `src/scene/LoadingScene.*`, `src/ui/CustomCursor.*`, y `docs/implementation_changes_summary.md`; docs de módulos actualizados con notas de cambios.
+
 Trabajo pendiente detectado (según implementación actual en la rama `feature/menus`)
 ---------------------------------------------------------------
-Los siguientes elementos no están completamente implementados o requieren trabajo adicional para cumplir al 100% la especificación original. Incluyo archivos concretos donde aplicar cambios y una nota rápida del estado actual.
+Los siguientes elementos permanecen abiertos y requieren trabajo adicional para cumplir al 100% la especificación. Cada ítem incluye las rutas sugeridas donde realizar los cambios y el estado actual.
 
-- Persistencia de volúmenes por canal
-	- Estado: parcial. Existe `m_volume` global en `OptionsMenu` y `ConfigManager` pero no hay campos separados para `music_volume`, `sfx_volume` y `master_volume`.
-	- Archivos a modificar: `src/core/ConfigManager.cpp` / `.h`, `src/ui/OptionsMenu.cpp`.
-	- Tarea: añadir campos, exponer getters/setters, persistir en `config/ui_settings.json` (o `config/config.json`) y aplicar niveles al AudioHelper/AudioManager.
+- Persistencia de volúmenes por canal (music / sfx / master)
+	- Estado: parcial.
+	- Archivos objetivo: `src/core/ConfigManager.*`, `src/ui/OptionsMenu.cpp`, posibles `src/core/AudioManager.*` o `src/ui/AudioHelper.*`.
+	- Nota: añadir campos en el esquema de configuración (`music_volume`, `sfx_volume`, `master_volume`), wiring en OptionsMenu y aplicación en la capa de audio.
 
 - Toggle de Fullscreen y persistencia de resolución
-	- Estado: parcial. `OptionsMenu` lista resoluciones y `ConfigManager` persiste resolution, pero falta toggle `fullscreen` y aplicación robusta al crear la ventana.
-	- Archivos a modificar: `src/ui/OptionsMenu.cpp`, `src/core/ConfigManager.*`, `src/core/Game.cpp` (aplicar fullscreen al initWindow o vía un hook de ConfigManager).
+	- Estado: parcial.
+	- Archivos objetivo: `src/ui/OptionsMenu.cpp`, `src/core/ConfigManager.*`, `src/core/Game.cpp` (aplicar la configuración al crear/actualizar la ventana).
 
 - AudioHelper / AudioManager central
-	- Estado: pendiente. El MainMenu reproduce `background_music.wav` y SFX existen, pero no hay una capa central clara para controlar volúmenes por canal ni fallback robusto.
-	- Archivos a crear/modificar: `src/ui/AudioHelper.h/.cpp` o `src/core/AudioManager.*`, actualizar `src/ui/MainMenu.cpp`, `src/ui/UIManager.cpp` para usarlo.
+	- Estado: pendiente.
+	- Archivos objetivo: crear o mejorar `src/core/AudioManager.*` o `src/ui/AudioHelper.*`; actualizar `src/ui/MainMenu.cpp`, `src/ui/UIManager.cpp` para usar la capa.
+	- Nota: debe exponer volúmenes por canal, reproducción segura de SFX y fallback si faltan buffers.
 
-- Menú de Pausa: overlay y sonidos
-	- Estado: parcial. `PauseMenu` existe y abre `OptionsMenu`, pero falta overlay semitransparente consistente con MainMenu y reproducir `hover_select.wav`/`confirm.wav` en navegación.
-	- Archivos a modificar: `src/ui/PauseMenu.cpp`, `src/ui/UIManager.cpp` (para sonidos y estado pausado visual), `assets` si ajustes se requieren.
+- Menú de Pausa: overlay y reproducción de sonidos UI
+	- Estado: parcial.
+	- Archivos objetivo: `src/ui/PauseMenu.cpp`, `src/ui/UIManager.cpp`.
+	- Nota: añadir overlay semitransparente consistente con MainMenu y reproducir `hover_select.wav` / `confirm.wav` en navegación y selección.
 
-- Tests UI faltantes
-	- Estado: no implementados. Se crearon e hicieron correr tests de integración existentes, pero faltan los tests solicitados:
-		- `tests/ui/MainMenuTests.cpp`
-		- `tests/ui/AudioTests.cpp`
-		- `tests/ui/AssetLoadingTests.cpp`
-	- Tarea: crear los tests, añadir a `tests/CMakeLists.txt` y ejecutar `ctest`.
+- Tests UI y persistencia faltantes
+	- Estado: pendiente.
+	- Archivos objetivo: `tests/ui/MainMenuTests.cpp`, `tests/ui/AudioTests.cpp`, `tests/ui/AssetLoadingTests.cpp`, actualizar `tests/CMakeLists.txt`.
+	- Nota: incluir tests para carga/guardado de `ui_settings.json`, aplicación de resolución/fullscreen y reproducción básica de audio.
 
-- AssetManager: carga asíncrona / hot-reload
-	- Estado: parcialmente cubierto. Se añadieron APIs sincrónicas (`hasTexture`, `removeTexture`, `reloadTexturesFrom`) pero no hay carga asíncrona ni watcher para hot-reload.
-	- Archivos a modificar: `src/core/AssetManager.*` (implementar hilo de carga o API asíncrona si se desea), `src/core/Game.cpp` (si se quiere recargar automáticamente al detectar cambios en disco).
+- AssetManager: carga asíncrona / hot-reload (opcional)
+	- Estado: parcial.
+	- Archivos objetivo: `src/core/AssetManager.*`, `src/core/Game.cpp` (opcional para hot-reload trigger).
+	- Nota: actualmente hay utilidades de recarga sincrónica; la carga asíncrona o watcher es una mejora adicional.
 
-- SceneManager: hooks de transición y eventos `onLoadingComplete`
-	- Estado: el flujo de escenas funciona y `LoadingScene` existe; sin embargo, la señalización formal `onLoadingComplete` o un hook observable no está estandarizada.
-	- Archivos a modificar: `src/scene/SceneManager.*`, `src/scene/Scene.*` (añadir virtuales `onEnter/onExit/onLoadingComplete`) y actualizar las llamadas desde `LoadingScene`.
+- SceneManager: hooks de transición y `onLoadingComplete`
+	- Estado: parcial.
+	- Archivos objetivo: `src/scene/SceneManager.*`, `src/scene/Scene.*`, `src/scene/LoadingScene.*`.
+	- Nota: estandarizar virtuales `onEnter/onExit/onLoadingComplete` para facilitar integraciones y pruebas.
 
-- Documentación y tests de persistencia
-	- Estado: docs de módulos actualizadas parcialmente (se agregaron notas). Falta agregar el test automatizado de persistencia de `ui_settings.json` y documentar el formato exacto en `docs/modules/Core.md` o `docs/modules/UI.md`.
-	- Archivos a crear/modificar: `tests/ui/AssetLoadingTests.cpp`, `docs/modules/Options.md` (si se prefiere más específico), `src/core/ConfigManager.*` para documentación del esquema.
-
-Si quieres, procedo a implementar uno de estos puntos ahora (elige uno o indícame prioridad). Puedo hacer cambios atómicos y ejecutar build/tests tras cada cambio.
+Si quieres, procedo a implementar uno de estos puntos ahora (propongo priorizar "Persistencia de volúmenes por canal" si no tienes otra preferencia). Puedo realizar cambios atómicos y ejecutar build/tests tras cada cambio.
 
 Notas de compatibilidad y restricciones técnicas (recordatorio):
 	- Mantener compatibilidad con SFML 3.x y no introducir dependencias externas.

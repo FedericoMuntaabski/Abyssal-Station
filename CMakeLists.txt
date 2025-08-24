@@ -49,6 +49,8 @@ add_executable(AbyssalStation
     # Input module
     src/input/InputManager.cpp
     src/input/InputManager.h
+    src/input/CommandSystem.cpp
+    src/input/CommandSystem.h
     # Entities
     src/entities/Entity.cpp
     src/entities/Entity.h
@@ -60,6 +62,8 @@ add_executable(AbyssalStation
     src/entities/EntityManager.h
     src/entities/MovementHelper.cpp
     src/entities/MovementHelper.h
+    src/entities/EntityFactory.cpp
+    src/entities/EntityFactory.h
 
     # AI module
     src/ai/AIState.cpp
@@ -76,6 +80,8 @@ add_executable(AbyssalStation
     src/ai/Enemy.h
     src/ai/EnemyManager.cpp
     src/ai/EnemyManager.h
+    # src/ai/BehaviorStrategy.cpp
+    # src/ai/BehaviorStrategy.h
 
     # Collisions module
     src/collisions/CollisionBox.cpp

@@ -6,8 +6,6 @@
 #include "../scene/SceneManager.h"
 #include "UIManager.h"
 #include "OptionsMenu.h"
-#include "../scene/PlayScene.h"
-#include "../scene/LoadingScene.h"
 
 #include <SFML/Graphics/Text.hpp>
 #include <SFML/Graphics/Font.hpp>
@@ -84,12 +82,7 @@ void MainMenu::handleInput() {
             if (m_uiManager) {
                 m_uiManager->triggerStartGame();
             }
-            if (m_manager) {
-                // Push LoadingScene with PlayScene as next scene
-                auto playScene = std::make_unique<scene::PlayScene>(m_manager);
-                auto loadingScene = std::make_unique<scene::LoadingScene>(std::move(playScene), m_manager);
-                m_manager->push(std::move(loadingScene));
-            }
+            // Scene management is handled by UIManager events
         } else if (choice == "Crear Sala") {
             // TODO: Placeholder for multiplayer room creation
             core::Logger::instance().info("Crear Sala selected - Funcionalidad pendiente de implementación");
@@ -102,7 +95,7 @@ void MainMenu::handleInput() {
             if (m_uiManager) {
                 // Open OptionsMenu with enhanced animation and pass ConfigManager if available
                 core::ConfigManager* cfg = m_uiManager->getConfigManager();
-                m_uiManager->pushMenu(new OptionsMenu(m_manager, cfg), AnimationType::Slide);
+                m_uiManager->pushMenu(new OptionsMenu(m_manager, cfg));
             } else {
                 core::Logger::instance().info("Options menu not implemented yet.");
             }
@@ -241,7 +234,7 @@ void MainMenu::renderTitle(sf::RenderWindow& window) {
     
     // Glow effect (multiple renders with different colors and positions)
     sf::Text titleGlow = title;
-    titleGlow.setFillColor(sf::Color(0, 150, 255, 100));
+    titleGlow.setFillColor(sf::Color(255, 165, 0, 128)); // Orange outline, slightly opaque
     for (int dx = -2; dx <= 2; dx++) {
         for (int dy = -2; dy <= 2; dy++) {
             if (dx == 0 && dy == 0) continue;
@@ -284,7 +277,9 @@ void MainMenu::renderOptions(sf::RenderWindow& window) {
         }
 
         // Option text with glow (20% larger text)
-        sf::Text text(font, m_options[i], 29); // 24 * 1.2 = 28.8 ≈ 29
+        // Use UTF-8 conversion for proper accented character support
+        std::string optionText = m_options[i];
+        sf::Text text(font, sf::String::fromUtf8(optionText.begin(), optionText.end()), 29); // 24 * 1.2 = 28.8 ≈ 29
         text.setScale(sf::Vector2f(scale, scale));
         text.setFillColor(selected ? sf::Color::Yellow : sf::Color::White);
         text.setPosition(position);

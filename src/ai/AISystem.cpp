@@ -17,6 +17,9 @@ AIAgent::AIAgent(entities::Entity* entity, const AIAgentConfig& config)
     , timeInCurrentState_(0.0f)
     , timeInPreviousState_(0.0f)
     , primaryTarget_(nullptr)
+    , hasSimpleTarget_(false)
+    , simpleTargetId_(0)
+    , simpleTargetPosition_(0, 0)
     , currentPatrolIndex_(0)
     , currentPathIndex_(0)
     , targetPosition_(0, 0)
@@ -713,6 +716,33 @@ void AIAgent::resetPerformanceStats() {
     performanceStats_ = PerformanceStats{};
     updateTimeAccumulator_ = 0.0f;
     updateCount_ = 0;
+}
+
+// Simple target management for Strategy Pattern
+bool AIAgent::hasTarget() const {
+    return hasSimpleTarget_;
+}
+
+void AIAgent::setTarget(uint32_t entityId, const sf::Vector2f& position) {
+    hasSimpleTarget_ = true;
+    simpleTargetId_ = entityId;
+    simpleTargetPosition_ = position;
+}
+
+void AIAgent::clearTarget() {
+    hasSimpleTarget_ = false;
+    simpleTargetId_ = 0;
+    simpleTargetPosition_ = sf::Vector2f(0, 0);
+}
+
+sf::Vector2f AIAgent::getTargetPosition() const {
+    return simpleTargetPosition_;
+}
+
+void AIAgent::setState(AIState state) {
+    if (currentState_ != state) {
+        changeState(state, "Strategy Pattern state change");
+    }
 }
 
 } // namespace ai

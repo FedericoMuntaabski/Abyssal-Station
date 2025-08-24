@@ -24,6 +24,16 @@ Funcional; permite remapeo en runtime y persistencia de opciones. Falta iconogra
 
 ### Notas de cambios (2025-08-24)
 - MainMenu: tamaño del título y texto del menú incrementado ~20%, espaciado mejorado para legibilidad.
+- **Title Enhancement**: Título del MainMenu ahora tiene borde naranja y posición ajustada (no pegado al borde).
+- **Hover Sounds**: Sistema de sonidos hover implementado en todos los menús (MainMenu, OptionsMenu, PauseMenu).
+- **UTF-8 Support**: Soporte completo para caracteres acentuados en toda la interfaz.
+- **OptionsMenu Rewrite**: Menú de opciones completamente reescrito con controles simples:
+  - Volumen Música/UI con controles +/- (0-100%)
+  - Selector de resolución (1024x576, 1280x720, 1366x768, 1920x1080)
+  - Toggle de pantalla completa
+  - Persistencia automática de configuración
+- **PauseMenu Enhancement**: Navegación mejorada, "Salir" renombrado a "Volver al menú principal".
+- **ConfigManager**: Estructura expandida para soportar volúmenes separados y configuración de pantalla.
 - LoadingScreen: texto atmosférico añadido y barra de progreso estilizada.
 - CustomCursor: implementado cursor gráfico y ocultación del cursor del sistema; escala por defecto reducida para mayor discreción.
 - Audio UI: `MainMenu` reproduce `background_music.wav` en loop; SFX demo ajustado para no hacer loop.

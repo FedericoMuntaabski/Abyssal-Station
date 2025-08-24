@@ -27,6 +27,7 @@ struct UIEvents {
     std::function<void()> onBindingChanged;
     std::function<void()> onSaveGame;
     std::function<void()> onLoadGame;
+    std::function<void()> onReturnToMainMenu;
 };
 
 // Animation types for menu transitions
@@ -122,6 +123,7 @@ public:
     void triggerBindingChanged();
     void triggerSaveGame();
     void triggerLoadGame();
+    void triggerReturnToMainMenu();
 
 private:
     struct MenuEntry {

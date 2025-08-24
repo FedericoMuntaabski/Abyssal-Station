@@ -17,6 +17,7 @@ add_executable(InputManagerTests
     input/InputManagerTest.cpp
     # Add the actual source files we're testing
     ../src/input/InputManager.cpp
+    ../src/input/CommandSystem.cpp
     ../src/core/Logger.cpp
 )
 
@@ -99,7 +100,6 @@ add_executable(EntityTests
     ../src/core/Logger.cpp
     ../src/core/GameState.h
     ../src/scene/SaveIntegration.cpp
-    ../src/scene/SceneManager.cpp
     ../src/gameplay/ItemManager.cpp
     ../src/gameplay/PuzzleManager.cpp
     ../src/gameplay/Item.cpp
@@ -109,7 +109,6 @@ add_executable(EntityTests
     ../src/ui/Menu.cpp
     ../src/ui/CustomCursor.cpp
     ../src/core/AssetManager.cpp
-    ../src/scene/LoadingScene.cpp
     ../src/core/ConfigManager.cpp
 )
 
@@ -184,6 +183,7 @@ add_executable(AITests
     ../src/ai/AISystem.cpp
     ../src/ai/AIManager.cpp
     ../src/ai/Enemy.cpp
+    # ../src/ai/BehaviorStrategy.cpp
     ../src/entities/Entity.cpp
     ../src/entities/Player.cpp
     ../src/entities/EntityManager.cpp
@@ -234,6 +234,9 @@ add_executable(SceneNavigationTests
     ../src/ui/UIManager.cpp
     ../src/ui/Menu.cpp
     ../src/ui/InputHelper.cpp
+    ../src/ui/CustomCursor.cpp
+    ../src/core/AssetManager.cpp
+    ../src/core/ConfigManager.cpp
     ../src/scene/SceneManager.cpp
     ../src/scene/MenuScene.cpp
     ../src/scene/PlayScene.cpp
@@ -244,6 +247,7 @@ add_executable(SceneNavigationTests
     ../src/entities/Entity.cpp
     ../src/entities/Player.cpp
     ../src/entities/Wall.cpp
+    ../src/entities/EntityFactory.cpp
     ../src/ai/Enemy.cpp
     ../src/ai/EnemyManager.cpp
     ../src/ai/AIState.cpp
@@ -251,6 +255,7 @@ add_executable(SceneNavigationTests
     ../src/ai/Pathfinding.cpp
     ../src/ai/AISystem.cpp
     ../src/ai/AIManager.cpp
+    # ../src/ai/BehaviorStrategy.cpp
     ../src/entities/MovementHelper.cpp
     ../src/collisions/CollisionManager.cpp
     ../src/collisions/CollisionBox.cpp
@@ -262,10 +267,6 @@ add_executable(SceneNavigationTests
     ../src/gameplay/PuzzleManager.cpp
     ../src/gameplay/Item.cpp
     ../src/gameplay/Puzzle.cpp
-    ../src/ui/CustomCursor.cpp
-    ../src/core/AssetManager.cpp
-    ../src/scene/LoadingScene.cpp
-    ../src/core/ConfigManager.cpp
 )
 
 # Include directories for scene navigation tests

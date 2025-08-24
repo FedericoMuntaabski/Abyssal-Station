@@ -258,6 +258,13 @@ void UIManager::triggerLoadGame() {
     }
 }
 
+void UIManager::triggerReturnToMainMenu() {
+    if (m_events.onReturnToMainMenu) {
+        m_events.onReturnToMainMenu();
+        core::Logger::instance().info("UIManager: triggered return to main menu event");
+    }
+}
+
 void UIManager::update(float dt) {
     if (m_paused) return;
     
