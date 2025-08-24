@@ -59,6 +59,7 @@ add_executable(GameplayTests
     ../src/entities/Entity.cpp
     ../src/collisions/CollisionManager.cpp
     ../src/collisions/CollisionBox.cpp
+    ../src/collisions/SpatialPartition.cpp
     ../src/core/Logger.cpp
 )
 
@@ -94,6 +95,7 @@ add_executable(EntityTests
     ../src/entities/EntityDebug.cpp
     ../src/collisions/CollisionManager.cpp
     ../src/collisions/CollisionBox.cpp
+    ../src/collisions/SpatialPartition.cpp
     ../src/core/Logger.cpp
     ../src/core/GameState.h
     ../src/scene/SaveIntegration.cpp
@@ -166,3 +168,49 @@ set_target_properties(CollisionTests PROPERTIES
 
 # Register collision tests with CTest
 gtest_discover_tests(CollisionTests)
+
+# Create AI tests executable
+add_executable(AITests
+    ai/AITests.cpp
+    # Add the actual source files we're testing
+    ../src/ai/AIState.cpp
+    ../src/ai/Perception.cpp
+    ../src/ai/Pathfinding.cpp
+    ../src/ai/AISystem.cpp
+    ../src/ai/AIManager.cpp
+    ../src/entities/Entity.cpp
+    ../src/entities/Player.cpp
+    ../src/entities/EntityManager.cpp
+    ../src/entities/MovementHelper.cpp
+    ../src/collisions/CollisionManager.cpp
+    ../src/collisions/CollisionBox.cpp
+    ../src/collisions/CollisionSystem.cpp
+    ../src/collisions/SpatialPartition.cpp
+    ../src/core/Logger.cpp
+)
+
+# Include directories for AI tests
+target_include_directories(AITests PRIVATE 
+    ${CMAKE_SOURCE_DIR}/src
+    ${CMAKE_SOURCE_DIR}/tests
+)
+
+# Link libraries for AI tests
+target_link_libraries(AITests PRIVATE 
+    GTest::gtest 
+    GTest::gtest_main
+    sfml-graphics 
+    sfml-window 
+    sfml-system
+    sfml-audio
+    nlohmann_json::nlohmann_json
+)
+
+# Set C++ standard for AI tests
+set_target_properties(AITests PROPERTIES
+    CXX_STANDARD 17
+    CXX_STANDARD_REQUIRED ON
+)
+
+# Register AI tests with CTest
+gtest_discover_tests(AITests)
