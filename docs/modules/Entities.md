@@ -29,3 +29,6 @@ Completo y probado. Integración con collision/scene/save. Recomendado exponer `
 
 ### Issues conocidos
 - `Puzzle::forceComplete()` recomendado para restauraciones de puzzles durante load.
+
+### Notas de cambios (2025-08-24)
+- No se cambiaron los sistemas de entidades; se validó que las notificaciones UI y logging funcionan correctamente tras ajustes de Logger y UIManager.

@@ -1,4 +1,5 @@
 #include "UIManager.h"
+#include "CustomCursor.h"
 #include "../core/ConfigManager.h"
 #include "../core/Logger.h"
 #include <SFML/Graphics/Text.hpp>
@@ -11,9 +12,16 @@
 namespace ui {
 
 UIManager::UIManager() {
+    // Initialize custom cursor
+    m_customCursor = std::make_unique<CustomCursor>();
+    m_customCursor->loadTexture("assets/textures/cursor.jpg");
+    // Make cursor much smaller for better UX (request: "tamaño mucho menor")
+    m_customCursor->setScale(0.07f);
+    m_customCursor->setEnabled(true); // Enable by default
+    
     // Try to load default font
-    if (std::filesystem::exists("assets/fonts/Long_Shot.ttf")) {
-        if (m_font.openFromFile("assets/fonts/Long_Shot.ttf")) {
+    if (std::filesystem::exists("assets/fonts/Main_font.ttf")) {
+        if (m_font.openFromFile("assets/fonts/Main_font.ttf")) {
             m_fontLoaded = true;
             core::Logger::instance().info("UIManager: Default font loaded");
         }
@@ -255,6 +263,11 @@ void UIManager::update(float dt) {
     
     updateAnimations(dt);
     
+    // Update custom cursor
+    if (m_customCursor) {
+        // Note: We'll update cursor in render method where we have access to window
+    }
+    
     // Remove completed exit animations
     m_menus.erase(std::remove_if(m_menus.begin(), m_menus.end(), 
         [this](const MenuEntry& entry) {
@@ -351,6 +364,12 @@ void UIManager::render(sf::RenderWindow& window) {
             y += 35.f;
         }
     }
+    
+    // Update and render custom cursor last (on top of everything)
+    if (m_customCursor) {
+        m_customCursor->update(window);
+        m_customCursor->render(window);
+    }
 }
 
 // Animation helpers implementation
@@ -435,6 +454,29 @@ sf::Transform UIManager::getAnimationTransform(const MenuEntry& entry, const sf:
     }
     
     return transform;
+}
+
+// Custom cursor methods
+void UIManager::enableCustomCursor(bool enabled) {
+    if (m_customCursor) {
+        m_customCursor->setEnabled(enabled);
+    }
+}
+
+bool UIManager::isCustomCursorEnabled() const {
+    return m_customCursor ? m_customCursor->isEnabled() : false;
+}
+
+void UIManager::setCustomCursorScale(float scale) {
+    if (m_customCursor) {
+        m_customCursor->setScale(scale);
+    }
+}
+
+void UIManager::setCustomCursorOffset(const sf::Vector2f& offset) {
+    if (m_customCursor) {
+        m_customCursor->setOffset(offset);
+    }
 }
 
 } // namespace ui

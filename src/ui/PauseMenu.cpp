@@ -126,7 +126,7 @@ void PauseMenu::render(sf::RenderWindow& window) {
     static sf::Font font;
     static bool fontLoaded = false;
     if (!fontLoaded) {
-        fontLoaded = font.openFromFile("assets/fonts/Long_Shot.ttf");
+        fontLoaded = font.openFromFile("assets/fonts/Secundary_font.ttf");
     }
 
     handleMouseHover(window);

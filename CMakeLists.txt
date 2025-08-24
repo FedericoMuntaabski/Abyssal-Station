@@ -39,11 +39,13 @@ add_executable(AbyssalStation
     src/scene/SceneManager.cpp
     src/scene/MenuScene.cpp
     src/scene/PlayScene.cpp
+    src/scene/LoadingScene.cpp
     src/scene/SaveIntegration.cpp
     src/scene/Scene.h
     src/scene/SceneManager.h
     src/scene/MenuScene.h
     src/scene/PlayScene.h
+    src/scene/LoadingScene.h
     # Input module
     src/input/InputManager.cpp
     src/input/InputManager.h
@@ -104,6 +106,7 @@ add_executable(AbyssalStation
     src/ui/OptionsMenu.cpp
     src/ui/UIManager.cpp
     src/ui/InputHelper.cpp
+    src/ui/CustomCursor.cpp
 )
 
 target_include_directories(AbyssalStation PRIVATE ${CMAKE_SOURCE_DIR}/src)

@@ -26,3 +26,7 @@ Completo y probado: remapeo por `OptionsMenu` funciona y persiste en `config/inp
 ## 5. Mejoras pendientes
 - Añadir soporte básico de gamepad y mejorar `keyToString` para combinaciones.
 
+### Notas de cambios (2025-08-24)
+- `OptionsMenu` implementar remapeo y persistencia; se verificó que la escritura de `config/input_bindings.json` funciona.
+- Se comprobó que los logs relacionados con input muestran correctamente acentos tras la mejora del Logger.
+

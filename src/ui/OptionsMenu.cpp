@@ -321,7 +321,7 @@ void OptionsMenu::renderMainMenu(sf::RenderWindow& window) {
     static sf::Font font;
     static bool fontLoaded = false;
     if (!fontLoaded) {
-        fontLoaded = font.openFromFile("assets/fonts/Long_Shot.ttf");
+        fontLoaded = font.openFromFile("assets/fonts/Main_font.ttf");
     }
 
     if (!fontLoaded) return;
@@ -369,7 +369,7 @@ void OptionsMenu::renderControlsMenu(sf::RenderWindow& window) {
     static sf::Font font;
     static bool fontLoaded = false;
     if (!fontLoaded) {
-        fontLoaded = font.openFromFile("assets/fonts/Long_Shot.ttf");
+        fontLoaded = font.openFromFile("assets/fonts/Secundary_font.ttf");
     }
 
     if (!fontLoaded) return;
@@ -404,7 +404,7 @@ void OptionsMenu::renderRemappingOverlay(sf::RenderWindow& window) {
     static sf::Font font;
     static bool fontLoaded = false;
     if (!fontLoaded) {
-        fontLoaded = font.openFromFile("assets/fonts/Long_Shot.ttf");
+        fontLoaded = font.openFromFile("assets/fonts/Secundary_font.ttf");
     }
 
     if (!fontLoaded) return;
@@ -477,7 +477,7 @@ void OptionsMenu::renderOption(sf::RenderWindow& window, const std::string& labe
     static sf::Font font;
     static bool fontLoaded = false;
     if (!fontLoaded) {
-        fontLoaded = font.openFromFile("assets/fonts/Long_Shot.ttf");
+        fontLoaded = font.openFromFile("assets/fonts/Secundary_font.ttf");
     }
 
     if (!fontLoaded) return;
@@ -511,7 +511,7 @@ void OptionsMenu::renderControlBinding(sf::RenderWindow& window, input::Action a
     static sf::Font font;
     static bool fontLoaded = false;
     if (!fontLoaded) {
-        fontLoaded = font.openFromFile("assets/fonts/Long_Shot.ttf");
+        fontLoaded = font.openFromFile("assets/fonts/Secundary_font.ttf");
     }
 
     if (!fontLoaded) return;
@@ -560,7 +560,7 @@ void OptionsMenu::renderHint(sf::RenderWindow& window, const std::string& text, 
     static sf::Font font;
     static bool fontLoaded = false;
     if (!fontLoaded) {
-        fontLoaded = font.openFromFile("assets/fonts/Long_Shot.ttf");
+        fontLoaded = font.openFromFile("assets/fonts/Secundary_font.ttf");
     }
 
     if (!fontLoaded) return;

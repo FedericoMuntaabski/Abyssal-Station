@@ -46,3 +46,7 @@ SFML 3.x, EntityManager, AI.
 
 ## 7. Historial / Backups
 Originales consolidados en `docs/backups/20250824/`.
+
+### Notas de cambios (2025-08-24)
+- No se realizaron cambios directos al sistema de colisiones durante esta iteración.
+- Observación: se verificó la integración con el bucle de render y logging del Core; los logs ahora muestran acentos correctamente.

@@ -99,6 +99,7 @@ add_executable(EntityTests
     ../src/core/Logger.cpp
     ../src/core/GameState.h
     ../src/scene/SaveIntegration.cpp
+    ../src/scene/SceneManager.cpp
     ../src/gameplay/ItemManager.cpp
     ../src/gameplay/PuzzleManager.cpp
     ../src/gameplay/Item.cpp
@@ -106,6 +107,10 @@ add_executable(EntityTests
     ../src/input/InputManager.cpp
     ../src/ui/UIManager.cpp
     ../src/ui/Menu.cpp
+    ../src/ui/CustomCursor.cpp
+    ../src/core/AssetManager.cpp
+    ../src/scene/LoadingScene.cpp
+    ../src/core/ConfigManager.cpp
 )
 
 # Include directories for entity tests
@@ -257,6 +262,10 @@ add_executable(SceneNavigationTests
     ../src/gameplay/PuzzleManager.cpp
     ../src/gameplay/Item.cpp
     ../src/gameplay/Puzzle.cpp
+    ../src/ui/CustomCursor.cpp
+    ../src/core/AssetManager.cpp
+    ../src/scene/LoadingScene.cpp
+    ../src/core/ConfigManager.cpp
 )
 
 # Include directories for scene navigation tests

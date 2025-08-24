@@ -32,6 +32,24 @@ void AssetManager::loadTexturesFrom(const std::string& folderPath)
 	}
 }
 
+bool AssetManager::hasTexture(const std::string& name) const
+{
+	return m_textures.find(name) != m_textures.end();
+}
+
+void AssetManager::removeTexture(const std::string& name)
+{
+	auto it = m_textures.find(name);
+	if (it != m_textures.end()) m_textures.erase(it);
+}
+
+void AssetManager::reloadTexturesFrom(const std::string& folderPath)
+{
+	// Clear and reload to reflect disk changes
+	m_textures.clear();
+	loadTexturesFrom(folderPath);
+}
+
 void AssetManager::loadSoundsFrom(const std::string& folderPath)
 {
 	try {

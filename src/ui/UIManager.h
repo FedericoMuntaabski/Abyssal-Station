@@ -2,6 +2,7 @@
 #define ABYSSAL_STATION_SRC_UI_UIMANAGER_H
 
 #include "Menu.h"
+#include "CustomCursor.h"
 #include <SFML/Graphics/Color.hpp>
 #include <SFML/Graphics/Font.hpp>
 #include <vector>
@@ -86,6 +87,13 @@ public:
     void setFont(const sf::Font& font);
     void setTheme(const std::string& themeName);
     
+    // Custom cursor management
+    void enableCustomCursor(bool enabled = true);
+    void disableCustomCursor() { enableCustomCursor(false); }
+    bool isCustomCursorEnabled() const;
+    void setCustomCursorScale(float scale);
+    void setCustomCursorOffset(const sf::Vector2f& offset);
+    
     // UI state and accessibility
     void setPaused(bool p) { m_paused = p; }
     bool isPaused() const noexcept { return m_paused; }
@@ -148,6 +156,9 @@ private:
     sf::Font m_font;
     bool m_fontLoaded{false};
     std::string m_currentTheme{"default"};
+    
+    // Custom cursor
+    std::unique_ptr<CustomCursor> m_customCursor;
     
     // Accessibility and input
     bool m_accessibilityMode{false};

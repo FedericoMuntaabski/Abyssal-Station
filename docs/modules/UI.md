@@ -21,3 +21,10 @@ Funcional; permite remapeo en runtime y persistencia de opciones. Falta iconogra
 
 ## 4. Archivos clave
 - `src/ui/UIManager.*`, `MainMenu.*`, `OptionsMenu.*`, `InputHelper.*`.
+
+### Notas de cambios (2025-08-24)
+- MainMenu: tamaño del título y texto del menú incrementado ~20%, espaciado mejorado para legibilidad.
+- LoadingScreen: texto atmosférico añadido y barra de progreso estilizada.
+- CustomCursor: implementado cursor gráfico y ocultación del cursor del sistema; escala por defecto reducida para mayor discreción.
+- Audio UI: `MainMenu` reproduce `background_music.wav` en loop; SFX demo ajustado para no hacer loop.
+- Logger: corrección de encoding para tildes/acentos, lo que mejora la lectura de mensajes en UI e integraciones.

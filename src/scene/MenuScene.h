@@ -2,6 +2,7 @@
 #define A6C1D2_MENUSCENE_H
 
 #include "Scene.h"
+#include "../core/ConfigManager.h"
 #include <SFML/Graphics.hpp>
 #include <memory>
 namespace scene { class SceneManager; class PlayScene; }

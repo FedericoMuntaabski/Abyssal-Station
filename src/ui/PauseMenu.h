@@ -2,8 +2,10 @@
 #define ABYSSAL_STATION_SRC_UI_PAUSEMENU_H
 
 #include "Menu.h"
+#include "InputHelper.h"
 #include <vector>
 #include <string>
+#include <memory>
 
 namespace scene { class SceneManager; }
 namespace ui { class UIManager; }

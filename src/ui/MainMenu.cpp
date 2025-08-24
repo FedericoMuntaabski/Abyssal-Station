@@ -1,11 +1,13 @@
 #include "MainMenu.h"
 #include "InputHelper.h"
 #include "../core/Logger.h"
+#include "../core/AssetManager.h"
 #include "../input/InputManager.h"
 #include "../scene/SceneManager.h"
 #include "UIManager.h"
 #include "OptionsMenu.h"
 #include "../scene/PlayScene.h"
+#include "../scene/LoadingScene.h"
 
 #include <SFML/Graphics/Text.hpp>
 #include <SFML/Graphics/Font.hpp>
@@ -24,12 +26,27 @@ MainMenu::MainMenu(scene::SceneManager* manager, ui::UIManager* uiManager)
     m_options = {"Jugar (Solo)", "Crear Sala", "Opciones", "Salir"};
     m_scales.assign(m_options.size(), 1.0f);
     m_glowIntensity.assign(m_options.size(), 0.0f);
+    
+    // Load audio assets
+    loadAudio();
 }
 
 void MainMenu::onEnter() {
     // Ensure first option selected when opened
     m_selected = 0;
     updateActiveDevice();
+    
+    // Start background music
+    core::Logger::instance().info("MainMenu: Checking background music - audioLoaded: " + 
+                                std::to_string(m_audioLoaded) + ", status: " + 
+                                std::to_string(static_cast<int>(m_backgroundMusic.getStatus())));
+    
+    if (m_audioLoaded && m_backgroundMusic.getStatus() != sf::SoundSource::Status::Playing) {
+        m_backgroundMusic.setLooping(true);
+        m_backgroundMusic.play();
+        core::Logger::instance().info("MainMenu: Background music started");
+    }
+    
     core::Logger::instance().info("MainMenu: Entered main menu");
 }
 
@@ -48,16 +65,19 @@ void MainMenu::handleInput() {
     if (im.isActionJustPressed(input::Action::MoveUp)) {
         if (m_selected == 0) m_selected = m_options.size() - 1;
         else --m_selected;
+        playHoverSound();
         core::Logger::instance().info("MainMenu: Selected option " + std::to_string(m_selected));
     }
 
     if (im.isActionJustPressed(input::Action::MoveDown)) {
         m_selected = (m_selected + 1) % m_options.size();
+        playHoverSound();
         core::Logger::instance().info("MainMenu: Selected option " + std::to_string(m_selected));
     }
 
     if (im.isActionJustPressed(input::Action::Confirm)) {
         const auto& choice = m_options[m_selected];
+        playConfirmSound();
         core::Logger::instance().info("MainMenu selected: " + choice);
         
         if (choice == "Jugar (Solo)") {
@@ -65,8 +85,10 @@ void MainMenu::handleInput() {
                 m_uiManager->triggerStartGame();
             }
             if (m_manager) {
-                // Push PlayScene
-                m_manager->push(std::make_unique<scene::PlayScene>(m_manager));
+                // Push LoadingScene with PlayScene as next scene
+                auto playScene = std::make_unique<scene::PlayScene>(m_manager);
+                auto loadingScene = std::make_unique<scene::LoadingScene>(std::move(playScene), m_manager);
+                m_manager->push(std::move(loadingScene));
             }
         } else if (choice == "Crear Sala") {
             // TODO: Placeholder for multiplayer room creation
@@ -111,15 +133,20 @@ void MainMenu::handleMouseHover(sf::RenderWindow& window) {
     
     sf::Vector2i mousePos = sf::Mouse::getPosition(window);
     sf::Vector2f mousePosF = static_cast<sf::Vector2f>(mousePos);
+    sf::Vector2f windowSize = static_cast<sf::Vector2f>(window.getSize());
+    
+    // Calculate right-side menu position
+    float menuX = windowSize.x - 350.f;
     
     for (std::size_t i = 0; i < m_options.size(); ++i) {
-        sf::Vector2f optionPos(120.f, m_startY + static_cast<float>(i) * m_spacing);
+        sf::Vector2f optionPos(menuX, m_startY + static_cast<float>(i) * m_spacing);
         sf::Vector2f optionSize(300.f, 35.f);
         
         sf::FloatRect bounds(optionPos, optionSize);
         if (bounds.contains(mousePosF)) {
             if (m_selected != i) {
                 m_selected = i;
+                playHoverSound();
                 core::Logger::instance().info("MainMenu: Mouse hover selected option " + std::to_string(m_selected));
             }
             break;
@@ -159,28 +186,58 @@ void MainMenu::render(sf::RenderWindow& window) {
 void MainMenu::renderBackground(sf::RenderWindow& window) {
     sf::Vector2f windowSize = static_cast<sf::Vector2f>(window.getSize());
     
-    // Animated background with subtle pulse
-    sf::RectangleShape bg;
-    bg.setSize(windowSize);
-    float pulseIntensity = 15.0f + 5.0f * std::sin(m_backgroundPulse);
-    std::uint8_t bgAlpha = static_cast<std::uint8_t>(pulseIntensity);
-    bg.setFillColor(sf::Color(10, 15, 25, bgAlpha));
-    window.draw(bg);
+    // Try to get Main Menu background texture
+    auto backgroundTexture = AssetManager::instance().getTexture("Main Menu");
+    
+    if (backgroundTexture) {
+        // Use Main Menu texture as background
+        sf::Sprite backgroundSprite(*backgroundTexture);
+        
+        // Scale to fit window
+        sf::Vector2u textureSize = backgroundTexture->getSize();
+        float scaleX = windowSize.x / static_cast<float>(textureSize.x);
+        float scaleY = windowSize.y / static_cast<float>(textureSize.y);
+        backgroundSprite.setScale(sf::Vector2f(scaleX, scaleY));
+        
+        window.draw(backgroundSprite);
+        
+        // Dark overlay for better text readability
+        sf::RectangleShape overlay;
+        overlay.setSize(windowSize);
+        float pulseIntensity = 0.3f + 0.1f * std::sin(m_backgroundPulse);
+        std::uint8_t overlayAlpha = static_cast<std::uint8_t>(pulseIntensity * 255);
+        overlay.setFillColor(sf::Color(0, 0, 0, overlayAlpha));
+        window.draw(overlay);
+    } else {
+        // Fallback: animated background with subtle pulse
+        sf::RectangleShape bg;
+        bg.setSize(windowSize);
+        float pulseIntensity = 15.0f + 5.0f * std::sin(m_backgroundPulse);
+        std::uint8_t bgAlpha = static_cast<std::uint8_t>(pulseIntensity);
+        bg.setFillColor(sf::Color(10, 15, 25, bgAlpha));
+        window.draw(bg);
+    }
 }
 
 void MainMenu::renderTitle(sf::RenderWindow& window) {
     static sf::Font font;
     static bool fontLoaded = false;
     if (!fontLoaded) {
-        fontLoaded = font.openFromFile("assets/fonts/Long_Shot.ttf");
+        fontLoaded = font.openFromFile("assets/fonts/Main_font.ttf");
     }
 
     if (!fontLoaded) return;
 
-    // Main title with glow effect
-    sf::Text title(font, "ABYSSAL STATION", 48);
+    sf::Vector2f windowSize = static_cast<sf::Vector2f>(window.getSize());
+
+    // Main title positioned to the right upper area (20% larger)
+    sf::Text title(font, "ABYSSAL-STATION", 58); // 48 * 1.2 = 57.6 ≈ 58
     title.setFillColor(sf::Color::White);
-    title.setPosition(sf::Vector2f(100.f, 60.f));
+    
+    // Position title to the right side, near the buttons area
+    float titleX = windowSize.x - 450.f; // Right side with margin
+    float titleY = 60.f; // Upper area
+    title.setPosition(sf::Vector2f(titleX, titleY));
     
     // Glow effect (multiple renders with different colors and positions)
     sf::Text titleGlow = title;
@@ -188,7 +245,7 @@ void MainMenu::renderTitle(sf::RenderWindow& window) {
     for (int dx = -2; dx <= 2; dx++) {
         for (int dy = -2; dy <= 2; dy++) {
             if (dx == 0 && dy == 0) continue;
-            titleGlow.setPosition(title.getPosition() + sf::Vector2f(dx, dy));
+            titleGlow.setPosition(title.getPosition() + sf::Vector2f(static_cast<float>(dx), static_cast<float>(dy)));
             window.draw(titleGlow);
         }
     }
@@ -200,13 +257,18 @@ void MainMenu::renderOptions(sf::RenderWindow& window) {
     static sf::Font font;
     static bool fontLoaded = false;
     if (!fontLoaded) {
-        fontLoaded = font.openFromFile("assets/fonts/Long_Shot.ttf");
+        fontLoaded = font.openFromFile("assets/fonts/Secundary_font.ttf");
     }
 
     if (!fontLoaded) return;
 
+    sf::Vector2f windowSize = static_cast<sf::Vector2f>(window.getSize());
+    
+    // Position menu on the right side
+    float menuX = windowSize.x - 350.f;
+
     for (std::size_t i = 0; i < m_options.size(); ++i) {
-        sf::Vector2f position(120.f, m_startY + static_cast<float>(i) * m_spacing);
+        sf::Vector2f position(menuX, m_startY + static_cast<float>(i) * m_spacing);
         bool selected = (i == m_selected);
         float scale = (i < m_scales.size()) ? m_scales[i] : 1.0f;
         float glow = (i < m_glowIntensity.size()) ? m_glowIntensity[i] : 0.0f;
@@ -217,12 +279,12 @@ void MainMenu::renderOptions(sf::RenderWindow& window) {
             highlight.setSize(sf::Vector2f(300.f * scale, 35.f * scale));
             highlight.setPosition(position + sf::Vector2f(-10.f, -5.f));
             std::uint8_t highlightAlpha = static_cast<std::uint8_t>(50 * glow);
-            highlight.setFillColor(sf::Color(255, 255, 255, highlightAlpha));
+            highlight.setFillColor(sf::Color(255, 100, 100, highlightAlpha)); // Red tint
             window.draw(highlight);
         }
 
-        // Option text with glow
-        sf::Text text(font, m_options[i], 24);
+        // Option text with glow (20% larger text)
+        sf::Text text(font, m_options[i], 29); // 24 * 1.2 = 28.8 ≈ 29
         text.setScale(sf::Vector2f(scale, scale));
         text.setFillColor(selected ? sf::Color::Yellow : sf::Color::White);
         text.setPosition(position);
@@ -235,7 +297,7 @@ void MainMenu::renderOptions(sf::RenderWindow& window) {
             for (int dx = -1; dx <= 1; dx++) {
                 for (int dy = -1; dy <= 1; dy++) {
                     if (dx == 0 && dy == 0) continue;
-                    textGlow.setPosition(position + sf::Vector2f(dx, dy));
+                    textGlow.setPosition(position + sf::Vector2f(static_cast<float>(dx), static_cast<float>(dy)));
                     window.draw(textGlow);
                 }
             }
@@ -252,7 +314,7 @@ void MainMenu::renderOptions(sf::RenderWindow& window) {
                 indicator = "▶";
             }
             
-            sf::Text indicatorText(font, indicator, 24);
+            sf::Text indicatorText(font, indicator, 29); // Match button text size
             indicatorText.setScale(sf::Vector2f(scale, scale));
             indicatorText.setFillColor(sf::Color::Yellow);
             indicatorText.setPosition(position + sf::Vector2f(-40.f, 0.f));
@@ -265,7 +327,7 @@ void MainMenu::renderHints(sf::RenderWindow& window) {
     static sf::Font font;
     static bool fontLoaded = false;
     if (!fontLoaded) {
-        fontLoaded = font.openFromFile("assets/fonts/Long_Shot.ttf");
+        fontLoaded = font.openFromFile("assets/fonts/Secundary_font.ttf");
     }
 
     if (!fontLoaded) return;
@@ -313,6 +375,46 @@ std::string MainMenu::getContextualHint() const {
                              "/" + m_inputHelper->getActionDisplayName(input::Action::MoveDown, m_activeDevice);
     
     return "Navigate: " + moveActions + "  Select: " + confirmAction + "  Exit: " + cancelAction;
+}
+
+void MainMenu::loadAudio() {
+    // Load background music
+    if (m_backgroundMusic.openFromFile("assets/sounds/background_music.wav")) {
+        core::Logger::instance().info("MainMenu: Background music loaded successfully");
+    } else {
+        core::Logger::instance().warning("MainMenu: Failed to load background music");
+    }
+    
+    // Load sound effects
+    m_hoverBuffer = AssetManager::instance().getSound("hover_select");
+    if (m_hoverBuffer) {
+        m_hoverSound = std::make_unique<sf::Sound>(*m_hoverBuffer);
+        core::Logger::instance().info("MainMenu: Hover sound loaded successfully");
+    } else {
+        core::Logger::instance().warning("MainMenu: Failed to load hover sound");
+    }
+    
+    m_confirmBuffer = AssetManager::instance().getSound("confirm");
+    if (m_confirmBuffer) {
+        m_confirmSound = std::make_unique<sf::Sound>(*m_confirmBuffer);
+        core::Logger::instance().info("MainMenu: Confirm sound loaded successfully");
+    } else {
+        core::Logger::instance().warning("MainMenu: Failed to load confirm sound");
+    }
+    
+    m_audioLoaded = true;
+}
+
+void MainMenu::playHoverSound() {
+    if (m_audioLoaded && m_hoverSound && m_hoverSound->getStatus() != sf::SoundSource::Status::Playing) {
+        m_hoverSound->play();
+    }
+}
+
+void MainMenu::playConfirmSound() {
+    if (m_audioLoaded && m_confirmSound) {
+        m_confirmSound->play();
+    }
 }
 
 } // namespace ui

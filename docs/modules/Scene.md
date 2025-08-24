@@ -110,3 +110,7 @@ Sistema completo de gestión de escenas con pila LIFO (`SceneManager`), menú pr
 - **Localización**: Soporte multi-idioma
 - **Gráficos Avanzados**: Shaders, partículas
 - **Sonido**: Música de fondo, efectos de sonido
+
+### Notas de cambios (2025-08-24)
+- Se movió la responsabilidad del dibujo del background desde `Game` a las escenas individuales para evitar mostrar texturas obsoletas cuando los archivos cambian o se eliminan.
+- `LoadingScene` y `MainMenu` ya gestionan sus propios fondos; `SceneManager` sigue encargando la transición entre escenas.

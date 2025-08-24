@@ -28,3 +28,7 @@ Implementado y testeado. Soporta serialización JSON, animaciones en recolecció
 - Implementar `CollisionManager::updateColliderBounds` o marcar `colliderRegistered_` para evitar llamadas repetidas en `Item::update`.
 - Considerar spatial hash para grandes cantidades de ítems.
 
+### Notas de cambios (2025-08-24)
+- Se confirmó la integración de notificaciones de UI (item collected) con `UIManager` y que las salidas de log ahora muestran acentos correctamente.
+- El dibujo global de background fue movido a las escenas para evitar artefactos visuales cuando assets son eliminados del disco.
+
