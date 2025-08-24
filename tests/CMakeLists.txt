@@ -178,6 +178,7 @@ add_executable(AITests
     ../src/ai/Pathfinding.cpp
     ../src/ai/AISystem.cpp
     ../src/ai/AIManager.cpp
+    ../src/ai/Enemy.cpp
     ../src/entities/Entity.cpp
     ../src/entities/Player.cpp
     ../src/entities/EntityManager.cpp
@@ -185,7 +186,9 @@ add_executable(AITests
     ../src/collisions/CollisionManager.cpp
     ../src/collisions/CollisionBox.cpp
     ../src/collisions/CollisionSystem.cpp
+    ../src/collisions/CollisionEvents.cpp
     ../src/collisions/SpatialPartition.cpp
+    ../src/input/InputManager.cpp
     ../src/core/Logger.cpp
 )
 
@@ -199,10 +202,10 @@ target_include_directories(AITests PRIVATE
 target_link_libraries(AITests PRIVATE 
     GTest::gtest 
     GTest::gtest_main
-    sfml-graphics 
-    sfml-window 
-    sfml-system
-    sfml-audio
+    SFML::Graphics 
+    SFML::Window 
+    SFML::System
+    SFML::Audio
     nlohmann_json::nlohmann_json
 )
 

@@ -387,7 +387,7 @@ void Enemy::render(sf::RenderWindow& window) {
         visionCone.setPoint(0, center);
         
         float angleRad = std::atan2(facingDir_.y, facingDir_.x);
-        float halfAngle = 32.5f * M_PI / 180.0f; // 65 degrees / 2
+        float halfAngle = 32.5f * static_cast<float>(M_PI) / 180.0f; // 65 degrees / 2
         
         sf::Vector2f leftPoint = center + sf::Vector2f(
             visionRange_ * std::cos(angleRad - halfAngle),
