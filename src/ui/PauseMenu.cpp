@@ -20,7 +20,7 @@ using input::InputManager;
 PauseMenu::PauseMenu(scene::SceneManager* manager, ui::UIManager* uiManager)
     : Menu("PauseMenu"), m_manager(manager), m_uiManager(uiManager) {
     // Mirror MainMenu options with small utilities
-    m_options = {"Resume", "Options", "Save", "Load", "Volver al menú principal"};
+    m_options = {"Resume", "Options", "Save", "Load", "Volver al menu principal"};
     m_inputHelper = std::make_unique<InputHelper>();
     m_scales.assign(m_options.size(), 1.0f);
     m_glowIntensity.assign(m_options.size(), 0.0f);
@@ -78,6 +78,7 @@ std::string PauseMenu::getContextualHint() const {
 }
 
 void PauseMenu::handleInput() {
+    core::Logger::instance().info("PauseMenu: handleInput() called");
 
     updateActiveDevice();
     auto& im = InputManager::getInstance();
@@ -124,7 +125,7 @@ void PauseMenu::handleInput() {
                 m_uiManager->triggerLoadGame();
                 m_uiManager->showToast("Game loaded (placeholder)", 2.0f, sf::Color::Cyan);
             }
-        } else if (choice == "Volver al menú principal") {
+        } else if (choice == "Volver al menu principal") {
             // Go back to main menu instead of quitting
             if (m_uiManager) {
                 m_uiManager->triggerReturnToMainMenu();

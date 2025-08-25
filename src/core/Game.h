@@ -10,6 +10,8 @@ namespace scene { class SceneManager; }
 
 namespace core { class ConfigManager; }
 
+namespace audio { class AudioManager; }
+
 class Game {
 public:
     // Construct a Game with an optional window size and title
@@ -47,6 +49,8 @@ private:
     std::unique_ptr<scene::SceneManager> m_sceneManager;
     // Global config manager (owned by the executable)
     std::unique_ptr<core::ConfigManager> m_configManager;
+    // Audio manager for dynamic audio
+    std::unique_ptr<audio::AudioManager> m_audioManager;
 };
 
 #endif // A2B9B8_GAME_H

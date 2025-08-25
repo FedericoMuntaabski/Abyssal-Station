@@ -57,6 +57,7 @@ add_executable(GameplayTests
     ../src/gameplay/ItemManager.cpp
     ../src/gameplay/Puzzle.cpp
     ../src/gameplay/PuzzleManager.cpp
+    ../src/gameplay/AchievementManager.cpp
     ../src/entities/Entity.cpp
     ../src/collisions/CollisionManager.cpp
     ../src/collisions/CollisionBox.cpp
@@ -104,6 +105,7 @@ add_executable(EntityTests
     ../src/gameplay/PuzzleManager.cpp
     ../src/gameplay/Item.cpp
     ../src/gameplay/Puzzle.cpp
+    ../src/gameplay/AchievementManager.cpp
     ../src/input/InputManager.cpp
     ../src/ui/UIManager.cpp
     ../src/ui/Menu.cpp
@@ -267,6 +269,7 @@ add_executable(SceneNavigationTests
     ../src/gameplay/PuzzleManager.cpp
     ../src/gameplay/Item.cpp
     ../src/gameplay/Puzzle.cpp
+    ../src/gameplay/AchievementManager.cpp
 )
 
 # Include directories for scene navigation tests

@@ -68,4 +68,27 @@ bool SaveManager::loadGame(GameState& outState, const std::string& filename)
     }
 }
 
+void SaveManager::update(float deltaTime, const GameState& currentState) {
+    if (!m_autoSaveEnabled) return;
+    
+    m_timeSinceLastAutoSave += deltaTime;
+    
+    if (shouldAutoSave()) {
+        if (performAutoSave(currentState)) {
+            m_timeSinceLastAutoSave = 0.0f;
+            core::Logger::instance().info("[save] Auto-save completed successfully");
+        } else {
+            core::Logger::instance().warning("[save] Auto-save failed");
+        }
+    }
+}
+
+bool SaveManager::shouldAutoSave() const {
+    return m_autoSaveEnabled && m_timeSinceLastAutoSave >= m_autoSaveIntervalSeconds;
+}
+
+bool SaveManager::performAutoSave(const GameState& state) {
+    return saveGame(state, "auto_save.json");
+}
+
 } // namespace core

@@ -89,9 +89,9 @@ void LoadingScene::render(sf::RenderWindow& window) {
         
         // Draw atmospheric loading text
         if (fontLoaded) {
-            std::string atmosphericText = "La estación ha quedado en silencio. Algo se mueve entre las sombras.\n"
-                                        "Antes de adentrarte, asegúrate de estar listo:\n"
-                                        "cada decisión puede ser la última. Cargando…";
+            std::string atmosphericText = "La estacion ha quedado en silencio. Algo se mueve entre las sombras.\n"
+                                        "Antes de adentrarte, asegurate de estar listo:\n"
+                                        "cada decision puede ser la ultima. Cargando...";
             
             sf::Text loadingText(font, atmosphericText, 18);
             loadingText.setFillColor(sf::Color(200, 200, 200)); // Light gray

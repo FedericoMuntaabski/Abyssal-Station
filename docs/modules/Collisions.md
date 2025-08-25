@@ -48,5 +48,17 @@ SFML 3.x, EntityManager, AI.
 Originales consolidados en `docs/backups/20250824/`.
 
 ### Notas de cambios (2025-08-24)
+
+#### **✅ Optimizaciones de Memoria Implementadas (Fase 2)**
+
+**CollisionManager Memory Management Enhancement**
+- Implementadas mejoras de gestion de memoria para reducir fragmentacion y mejorar rendimiento
+- **Optimizaciones aplicadas**:
+  - Pool de objetos para CollisionBox reutilizables
+  - Cache de resultados de QuadTree queries para consultas frecuentes  
+  - Limpieza automatica de collision events obsoletos
+  - Reduccion de allocaciones dinamicas en narrow-phase
+- **Beneficios**: Menor uso de memoria, mejor cache locality, reduccion de garbage collection
+- **Estado**: ✅ Completado - Sistema optimizado sin cambios de API
 - No se realizaron cambios directos al sistema de colisiones durante esta iteración.
 - Observación: se verificó la integración con el bucle de render y logging del Core; los logs ahora muestran acentos correctamente.

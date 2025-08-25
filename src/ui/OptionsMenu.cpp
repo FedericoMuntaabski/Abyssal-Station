@@ -34,9 +34,9 @@ OptionsMenu::OptionsMenu(scene::SceneManager* manager, core::ConfigManager* conf
 
 void OptionsMenu::initializeOptions() {
     m_mainOptions = {
-        "Volumen Música",
+        "Volumen Musica",
         "Volumen UI", 
-        "Resolución",
+        "Resolucion",
         "Pantalla Completa",
         "Guardar",
         "Regresar"
@@ -51,9 +51,6 @@ void OptionsMenu::initializeResolutions() {
         {1920, 1080}
     };
     
-    // Ensure m_selectedResolution is valid
-    m_selectedResolution = 0;
-    
     // Find current resolution in the list
     for (size_t i = 0; i < m_availableResolutions.size(); ++i) {
         if (m_availableResolutions[i].first == m_resolutionWidth && 
@@ -61,12 +58,6 @@ void OptionsMenu::initializeResolutions() {
             m_selectedResolution = i;
             break;
         }
-    }
-    
-    // Double-check that the selected resolution is within bounds
-    if (m_selectedResolution >= m_availableResolutions.size()) {
-        m_selectedResolution = 0;
-        core::Logger::instance().warning("OptionsMenu: Invalid resolution selection, reset to default");
     }
 }
 
@@ -89,7 +80,6 @@ void OptionsMenu::handleInput() {
     auto& im = InputManager::getInstance();
 
     if (im.isActionJustPressed(input::Action::MoveUp)) {
-        if (m_mainOptions.empty()) return;
         if (m_selected == 0) m_selected = m_mainOptions.size() - 1;
         else --m_selected;
         playHoverSound();
@@ -97,7 +87,6 @@ void OptionsMenu::handleInput() {
     }
 
     if (im.isActionJustPressed(input::Action::MoveDown)) {
-        if (m_mainOptions.empty()) return;
         m_selected = (m_selected + 1) % m_mainOptions.size();
         playHoverSound();
         core::Logger::instance().info("OptionsMenu: Selected option " + std::to_string(m_selected));
@@ -108,15 +97,15 @@ void OptionsMenu::handleInput() {
         int delta = im.isActionJustPressed(input::Action::MoveRight) ? 1 : -1;
         
         switch (m_selected) {
-            case 0: // Volumen Música
-                m_musicVolume = std::min(100, std::max(0, m_musicVolume + delta * 10));
+            case 0: // Volumen Musica
+                m_musicVolume = std::clamp(m_musicVolume + delta * 10, 0, 100);
                 core::Logger::instance().info("OptionsMenu: Music volume set to " + std::to_string(m_musicVolume));
                 break;
             case 1: // Volumen UI
-                m_uiVolume = std::min(100, std::max(0, m_uiVolume + delta * 10));
+                m_uiVolume = std::clamp(m_uiVolume + delta * 10, 0, 100);
                 core::Logger::instance().info("OptionsMenu: UI volume set to " + std::to_string(m_uiVolume));
                 break;
-            case 2: // Resolución
+            case 2: // Resolucion
             {
                 if (delta > 0) {
                     m_selectedResolution = (m_selectedResolution + 1) % m_availableResolutions.size();
@@ -137,33 +126,23 @@ void OptionsMenu::handleInput() {
     }
 
     if (im.isActionJustPressed(input::Action::Confirm)) {
-        if (m_selected >= m_mainOptions.size()) {
-            core::Logger::instance().error("OptionsMenu: Invalid selection index: " + std::to_string(m_selected));
-            return;
-        }
-        
         const auto& choice = m_mainOptions[m_selected];
         playConfirmSound();
         core::Logger::instance().info("OptionsMenu selected: " + choice);
         
         if (choice == "Guardar") {
             saveSettings();
+            core::Logger::instance().info("OptionsMenu: Settings saved");
         } else if (choice == "Regresar") {
             if (m_manager) {
-                core::Logger::instance().info("OptionsMenu: Returning to previous menu");
                 m_manager->pop();
-            } else {
-                core::Logger::instance().error("OptionsMenu: SceneManager is null, cannot return");
             }
         }
     }
 
     if (im.isActionJustPressed(input::Action::Cancel)) {
         if (m_manager) {
-            core::Logger::instance().info("OptionsMenu: Cancelled, returning to previous menu");
             m_manager->pop();
-        } else {
-            core::Logger::instance().error("OptionsMenu: SceneManager is null, cannot cancel");
         }
     }
 }
@@ -295,25 +274,18 @@ void OptionsMenu::renderBackground(sf::RenderWindow& window) {
 }
 
 std::string OptionsMenu::getOptionDisplayText(size_t index) const {
-    if (index >= m_mainOptions.size()) {
-        return "Invalid Option";
-    }
-    
     switch (index) {
-        case 0: // Volumen Música
-            return "Volumen Música: " + std::to_string(m_musicVolume) + "%";
+        case 0: // Volumen Musica
+            return "Volumen Musica: " + std::to_string(m_musicVolume) + "%";
         case 1: // Volumen UI
             return "Volumen UI: " + std::to_string(m_uiVolume) + "%";
-        case 2: // Resolución
+        case 2: // Resolucion
         {
-            if (m_selectedResolution >= m_availableResolutions.size()) {
-                return "Resolución: Error";
-            }
             auto res = m_availableResolutions[m_selectedResolution];
-            return "Resolución: " + std::to_string(res.first) + "x" + std::to_string(res.second);
+            return "Resolucion: " + std::to_string(res.first) + "x" + std::to_string(res.second);
         }
         case 3: // Pantalla Completa
-            return "Pantalla Completa: " + std::string(m_fullscreen ? "Sí" : "No");
+            return "Pantalla Completa: " + std::string(m_fullscreen ? "Si" : "No");
         case 4: // Guardar
             return "Guardar";
         case 5: // Regresar
@@ -336,36 +308,44 @@ std::string OptionsMenu::getContextualHint() const {
 
 void OptionsMenu::loadSettings() {
     if (m_configManager) {
-        m_musicVolume = m_configManager->musicVolume();
-        m_uiVolume = m_configManager->uiVolume();
-        m_fullscreen = m_configManager->fullscreen();
-        // Resolution will be set by initializeResolutions
+        try {
+            m_musicVolume = m_configManager->musicVolume();
+            m_uiVolume = m_configManager->uiVolume();
+            m_fullscreen = m_configManager->fullscreen();
+            core::Logger::instance().info("OptionsMenu: Settings loaded successfully");
+        } catch (const std::exception& e) {
+            core::Logger::instance().error("OptionsMenu: Error loading settings - " + std::string(e.what()));
+            // Set default values on error
+            m_musicVolume = 50;
+            m_uiVolume = 50;
+            m_fullscreen = false;
+        }
+    } else {
+        core::Logger::instance().warning("OptionsMenu: ConfigManager is null, using default settings");
+        // Set default values
+        m_musicVolume = 50;
+        m_uiVolume = 50;
+        m_fullscreen = false;
     }
 }
 
 void OptionsMenu::saveSettings() {
-    if (!m_configManager) {
-        core::Logger::instance().error("OptionsMenu: ConfigManager is null, cannot save settings");
-        return;
-    }
-    
-    if (m_selectedResolution >= m_availableResolutions.size()) {
-        core::Logger::instance().error("OptionsMenu: Invalid resolution index, cannot save settings");
-        return;
-    }
-    
-    try {
-        m_configManager->setMusicVolume(m_musicVolume);
-        m_configManager->setUiVolume(m_uiVolume);
-        m_configManager->setFullscreen(m_fullscreen);
-        
-        auto res = m_availableResolutions[m_selectedResolution];
-        m_configManager->setResolution(res.first, res.second);
-        
-        m_configManager->saveConfig();
-        core::Logger::instance().info("OptionsMenu: Settings saved successfully");
-    } catch (const std::exception& e) {
-        core::Logger::instance().error("OptionsMenu: Error saving settings: " + std::string(e.what()));
+    if (m_configManager) {
+        try {
+            m_configManager->setMusicVolume(m_musicVolume);
+            m_configManager->setUiVolume(m_uiVolume);
+            m_configManager->setFullscreen(m_fullscreen);
+            
+            auto res = m_availableResolutions[m_selectedResolution];
+            m_configManager->setResolution(res.first, res.second);
+            
+            m_configManager->saveConfig();
+            core::Logger::instance().info("OptionsMenu: Settings saved successfully");
+        } catch (const std::exception& e) {
+            core::Logger::instance().error("OptionsMenu: Error saving settings - " + std::string(e.what()));
+        }
+    } else {
+        core::Logger::instance().warning("OptionsMenu: ConfigManager is null, cannot save settings");
     }
 }
 
@@ -408,7 +388,7 @@ int OptionsMenu::volume() const noexcept {
 }
 
 void OptionsMenu::setVolume(int vol) {
-    m_musicVolume = std::min(100, std::max(0, vol));
+    m_musicVolume = std::clamp(vol, 0, 100);
 }
 
 const std::string& OptionsMenu::language() const noexcept {

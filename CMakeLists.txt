@@ -101,9 +101,13 @@ add_executable(AbyssalStation
     src/gameplay/ItemManager.cpp
     src/gameplay/Puzzle.cpp
     src/gameplay/PuzzleManager.cpp
+    src/gameplay/AchievementManager.cpp
     src/core/SaveManager.cpp
     # Debug scene for pickup test
     src/scene/DebugPickupScene.cpp
+    # Audio module
+    src/audio/AudioManager.cpp
+    src/audio/AudioManager.h
     # UI module
     src/ui/Menu.cpp
     src/ui/MainMenu.cpp

@@ -6,6 +6,8 @@
 #include "../ai/EnemyManager.h"
 #include "../gameplay/ItemManager.h"
 #include "../gameplay/PuzzleManager.h"
+#include "../gameplay/AchievementManager.h"
+#include "../core/SaveManager.h"
 
 namespace scene { class SceneManager; }
 namespace ui { class UIManager; }
@@ -44,6 +46,14 @@ private:
     // Gameplay managers
     std::unique_ptr<gameplay::ItemManager> m_itemManager;
     std::unique_ptr<gameplay::PuzzleManager> m_puzzleManager;
+    std::unique_ptr<gameplay::AchievementManager> m_achievementManager;
+    
+    // Auto-save system
+    std::unique_ptr<core::SaveManager> m_saveManager;
+    
+    // Achievement tracking
+    float m_survivalTime{0.0f};
+    
     // Interaction hint state
     bool m_showInteractHint{false};
     uint32_t m_nearbyItemId{0u};

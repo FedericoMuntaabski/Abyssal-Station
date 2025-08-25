@@ -64,6 +64,11 @@ void CollisionManager::addCollider(entities::Entity* owner, const sf::FloatRect&
         }
     }
 
+    // Reserve space to avoid reallocation and pointer invalidation
+    if (colliders_.capacity() <= colliders_.size()) {
+        colliders_.reserve(colliders_.size() * 2 + 10);
+    }
+
     // Not found -> add new and set its layer from owner
     colliders_.emplace_back(owner, bounds);
     colliders_.back().setLayer(owner->collisionLayer());

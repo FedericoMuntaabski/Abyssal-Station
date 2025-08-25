@@ -72,6 +72,20 @@ public:
                          float duration = 3.0f, sf::Color color = sf::Color::White);
     void showToast(const std::string& text, float duration = 2.0f, sf::Color color = sf::Color::White);
     
+    // Convenience methods for common notification types with predefined colors
+    void showErrorNotification(const std::string& text, float duration = 4.0f) {
+        showNotification(text, NotificationPriority::High, duration, sf::Color::Red);
+    }
+    void showWarningNotification(const std::string& text, float duration = 3.5f) {
+        showNotification(text, NotificationPriority::Normal, duration, sf::Color::Yellow);
+    }
+    void showSuccessNotification(const std::string& text, float duration = 3.0f) {
+        showNotification(text, NotificationPriority::Normal, duration, sf::Color::Green);
+    }
+    void showInfoNotification(const std::string& text, float duration = 2.5f) {
+        showNotification(text, NotificationPriority::Low, duration, sf::Color::Cyan);
+    }
+    
     // Lightweight notifications from game systems (item pickup, puzzle completion)
     void notifyItemCollected(std::uint32_t id);
     void notifyItemCollected(std::uint32_t id, sf::Color iconColor);

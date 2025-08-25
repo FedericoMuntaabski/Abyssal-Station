@@ -56,6 +56,9 @@ private:
     std::shared_ptr<sf::SoundBuffer> m_confirmBuffer;
     bool m_audioLoaded{false};
     
+    // State tracking
+    bool m_gameStarting{false};  // Prevent multiple start game triggers
+    
     // Helper methods
     void updateActiveDevice();
     void handleMouseHover(sf::RenderWindow& window);

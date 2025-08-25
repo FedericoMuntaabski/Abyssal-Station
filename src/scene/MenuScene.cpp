@@ -1,6 +1,7 @@
 #include "MenuScene.h"
 #include "SceneManager.h"
 #include "PlayScene.h"
+#include "LoadingScene.h"
 #include "../core/Logger.h"
 #include "../core/FontHelper.h"
 
@@ -45,6 +46,26 @@ void MenuScene::onEnter() {
 
     // Create UIManager and push the main menu
     m_uiManager = std::make_unique<ui::UIManager>();
+    
+    // Set up UI event callbacks for proper scene transitions
+    ui::UIEvents events;
+    events.onStartGame = [this]() {
+        Logger::instance().info("MenuScene: Starting game - transitioning to LoadingScene");
+        if (m_manager) {
+            // Create PlayScene as the target scene for LoadingScene
+            auto playScene = std::make_unique<scene::PlayScene>(m_manager);
+            // Push LoadingScene which will transition to PlayScene after 5 seconds
+            m_manager->push(std::make_unique<scene::LoadingScene>(std::move(playScene), m_manager));
+        }
+    };
+    events.onExit = [this]() {
+        Logger::instance().info("MenuScene: Exit requested");
+        if (m_manager) {
+            m_manager->pop();
+        }
+    };
+    m_uiManager->setEventCallbacks(events);
+    
     // If a ConfigManager was provided, register it with the UIManager so menus can access persisted settings
     if (m_configManager) {
         m_uiManager->setConfigManager(m_configManager);

@@ -32,3 +32,9 @@ Implementado y testeado. Soporta serialización JSON, animaciones en recolecció
 - Se confirmó la integración de notificaciones de UI (item collected) con `UIManager` y que las salidas de log ahora muestran acentos correctamente.
 - El dibujo global de background fue movido a las escenas para evitar artefactos visuales cuando assets son eliminados del disco.
 
+### Cambios recientes (2025-08-24) — delta
+
+- Se integró el `AchievementManager` para trackear progreso de recolección, supervivencia y combate; notificaciones automáticas en UI al desbloquear logros.
+- Se colocaron 11 ítems estratégicamente en `PlayScene` y se validó la animación de recolección y la notificación por cada pickup.
+- Mejoras menores en `ItemManager` para evitar re-registraciones de colisionadores por frame y prevenir posibles double-collect.
+
