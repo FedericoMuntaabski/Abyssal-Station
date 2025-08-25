@@ -22,10 +22,21 @@ public:
 
     // Simple accessors
     int volume() const noexcept { return m_volume; }
+    int musicVolume() const noexcept { return m_musicVolume; }
+    int uiVolume() const noexcept { return m_uiVolume; }
     const std::string& language() const noexcept { return m_language; }
     int width() const noexcept { return m_width; }
     int height() const noexcept { return m_height; }
+    bool fullscreen() const noexcept { return m_fullscreen; }
     int version() const noexcept { return m_version; }
+    
+    // Setters
+    void setVolume(int vol) { m_volume = vol; }
+    void setMusicVolume(int vol) { m_musicVolume = vol; }
+    void setUiVolume(int vol) { m_uiVolume = vol; }
+    void setLanguage(const std::string& lang) { m_language = lang; }
+    void setResolution(int w, int h) { m_width = w; m_height = h; }
+    void setFullscreen(bool fs) { m_fullscreen = fs; }
 
 private:
     void setDefaults();
@@ -35,9 +46,12 @@ private:
 
     // Data
     int m_volume{100};
+    int m_musicVolume{80};
+    int m_uiVolume{90};
     std::string m_language{"es"};
     int m_width{1920};
     int m_height{1080};
+    bool m_fullscreen{false};
     int m_version{1};
     float m_notificationDuration{3.0f};
 };

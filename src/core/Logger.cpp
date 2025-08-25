@@ -7,6 +7,9 @@
 #include <ctime>
 #include <iomanip>
 #include <sstream>
+#ifdef _WIN32
+#include <windows.h>
+#endif
 
 namespace core {
 
@@ -46,11 +49,36 @@ public:
 
         std::lock_guard<std::mutex> lk(mutex);
         if (consoleEnabled) {
-            if (level == LogLevel::Error) std::cerr << oss.str();
-            else std::cout << oss.str();
-            // Ensure immediate output on consoles that may buffer stdout/stderr
+#ifdef _WIN32
+            const std::string out = oss.str();
+            HANDLE h = (level == LogLevel::Error) ? GetStdHandle(STD_ERROR_HANDLE) : GetStdHandle(STD_OUTPUT_HANDLE);
+            bool wrote = false;
+            if (h != INVALID_HANDLE_VALUE) {
+                int wlen = MultiByteToWideChar(CP_UTF8, 0, out.c_str(), -1, nullptr, 0);
+                if (wlen > 0) {
+                    std::wstring wstr(static_cast<size_t>(wlen), L'\0');
+                    MultiByteToWideChar(CP_UTF8, 0, out.c_str(), -1, &wstr[0], wlen);
+                    DWORD written = 0;
+                    // Try WriteConsoleW even if handle might be redirected; if it fails, we'll fallback
+                    if (WriteConsoleW(h, wstr.c_str(), static_cast<DWORD>(wstr.size() - 1), &written, nullptr)) {
+                        wrote = true;
+                    }
+                }
+            }
+            if (!wrote) {
+                // Fallback: write UTF-8 bytes directly to stdout/stderr.
+                // Modern terminals (Windows Terminal, VSCode) expect UTF-8 and will render accents correctly.
+                if (level == LogLevel::Error) std::cerr << out;
+                else std::cout << out;
+            }
             if (level == LogLevel::Error) std::cerr.flush();
             else std::cout.flush();
+#else
+            if (level == LogLevel::Error) std::cerr << oss.str();
+            else std::cout << oss.str();
+            if (level == LogLevel::Error) std::cerr.flush();
+            else std::cout.flush();
+#endif
         }
         if (fileStream.is_open()) {
             fileStream << oss.str();

@@ -8,12 +8,14 @@
 #include "../entities/EntityManager.h"
 #include "../entities/Player.h"
 #include "../entities/Wall.h"
+#include "../entities/EntityFactory.h"
 #include "../ai/Enemy.h"
 #include "../collisions/CollisionManager.h"
 #include "../collisions/CollisionSystem.h"
 
 #include "../ui/UIManager.h"
 #include "../ui/PauseMenu.h"
+#include "../gameplay/AchievementManager.h"
 #include "../ui/OptionsMenu.h"
 
 #include "../gameplay/Item.h"
@@ -23,6 +25,7 @@
 
 #include <cmath>
 #include <filesystem>
+#include <ctime>
 
 namespace scene {
 
@@ -47,54 +50,256 @@ void PlayScene::onEnter() {
     m_collisionManager = std::make_unique<collisions::CollisionManager>();
     m_collisionSystem = std::make_unique<collisions::CollisionSystem>(*m_collisionManager);
     m_entityManager->setCollisionManager(m_collisionManager.get());
-    // create player with id 1 and position matching the rectangle, but smaller size
-    auto player = std::make_unique<entities::Player>(1u, m_rect.getPosition(), sf::Vector2f(20.f, 20.f));
+    
+    // ==================== FACTORY PATTERN DEMO ====================
+    // Use EntityFactory to create entities with JSON configuration
+    auto& factory = entities::EntityFactory::getInstance();
+    
+    // Create player using factory with custom configuration
+    nlohmann::json playerConfig = {
+        {"position", {m_rect.getPosition().x, m_rect.getPosition().y}},
+        {"size", {20.0f, 20.0f}},
+        {"speed", 220.0f},
+        {"health", 120}
+    };
+    auto player = factory.createPlayer(1u, playerConfig);
     m_player = player.get();
     m_entityManager->addEntity(std::move(player));
 
-    // Add a static wall to test collisions (id=2)
-    // place wall a bit further on X so it's not touching the player at spawn
-    // Move wall a bit further to the right (X) and slightly lower (Y) from previous placement
-    auto wall = std::make_unique<entities::Wall>(2u, sf::Vector2f(480.f, 170.f), sf::Vector2f(50.f, 150.f));
+    // Create wall using factory with position configuration - Main structural wall
+    nlohmann::json wallConfig = {
+        {"position", {480.0f, 170.0f}},
+        {"size", {50.0f, 150.0f}},
+        {"color", {100, 100, 100, 255}}
+    };
+    auto wall = factory.createWall(2u, wallConfig);
     m_entityManager->addEntity(std::move(wall));
 
-    // Add an enemy to the right of the wall on the X axis and offset away from the wall (~60 px)
-    float enemyOffsetFromWall = 60.f;
-    float enemyWidth = 32.f;
-    // wall's right X = wall.position.x + wall.size.x = 480 + 50 = 530
-    float wallRightX = 480.f + 50.f;
-    sf::Vector2f enemyPos(wallRightX + enemyOffsetFromWall, 200.f);
-    // provide simple patrol points so the enemy will patrol visibly to the right
-    std::vector<sf::Vector2f> patrolPoints;
-    patrolPoints.push_back(enemyPos);
-    patrolPoints.push_back(sf::Vector2f(enemyPos.x + 120.f, enemyPos.y));
-    auto enemy = std::make_unique<ai::Enemy>(3u, enemyPos, sf::Vector2f(enemyWidth, 32.f), 100.f, 200.f, 24.f, patrolPoints);
-    // Attach player target so enemy can chase
-    enemy->setTargetPlayer(m_player);
-    m_entityManager->addEntity(std::move(enemy));
-    // Create EnemyManager and register enemies for centralized planning
-    m_enemyManager = std::make_unique<ai::EnemyManager>();
-    // Register the previously added enemy (id=3) - find it in entity manager
-    if (auto e3 = dynamic_cast<ai::Enemy*>(m_entityManager->getEntity(3u))) {
-        m_enemyManager->addEnemyPointer(e3);
-    }
+    // Create additional walls to form a more complex station layout
+    // Top horizontal corridor wall
+    nlohmann::json topWallConfig = {
+        {"position", {200.0f, 100.0f}},
+        {"size", {400.0f, 30.0f}},
+        {"color", {80, 80, 80, 255}}
+    };
+    auto topWall = factory.createWall(5u, topWallConfig);
+    m_entityManager->addEntity(std::move(topWall));
 
-    // Spawn a second enemy to test multiple AI interactions (id=4) positioned further right
-    sf::Vector2f enemy2Pos(enemyPos.x + 200.f, enemyPos.y + 20.f);
-    std::vector<sf::Vector2f> patrol2;
-    patrol2.push_back(enemy2Pos);
-    patrol2.push_back(sf::Vector2f(enemy2Pos.x + 100.f, enemy2Pos.y));
-    auto enemy2 = std::make_unique<ai::Enemy>(4u, enemy2Pos, sf::Vector2f(enemyWidth, 32.f), 80.f, 180.f, 24.f, patrol2);
+    // Bottom horizontal corridor wall  
+    nlohmann::json bottomWallConfig = {
+        {"position", {200.0f, 380.0f}},
+        {"size", {400.0f, 30.0f}},
+        {"color", {80, 80, 80, 255}}
+    };
+    auto bottomWall = factory.createWall(6u, bottomWallConfig);
+    m_entityManager->addEntity(std::move(bottomWall));
+
+    // Left vertical corridor wall
+    nlohmann::json leftWallConfig = {
+        {"position", {150.0f, 130.0f}},
+        {"size", {30.0f, 250.0f}},
+        {"color", {80, 80, 80, 255}}
+    };
+    auto leftWall = factory.createWall(7u, leftWallConfig);
+    m_entityManager->addEntity(std::move(leftWall));
+
+    // Right vertical corridor wall
+    nlohmann::json rightWallConfig = {
+        {"position", {650.0f, 130.0f}},
+        {"size", {30.0f, 250.0f}},
+        {"color", {80, 80, 80, 255}}
+    };
+    auto rightWall = factory.createWall(8u, rightWallConfig);
+    m_entityManager->addEntity(std::move(rightWall));
+
+    // Interior room walls to create compartments
+    nlohmann::json interiorWall1Config = {
+        {"position", {300.0f, 200.0f}},
+        {"size", {20.0f, 80.0f}},
+        {"color", {90, 90, 90, 255}}
+    };
+    auto interiorWall1 = factory.createWall(9u, interiorWall1Config);
+    m_entityManager->addEntity(std::move(interiorWall1));
+
+    nlohmann::json interiorWall2Config = {
+        {"position", {550.0f, 150.0f}},
+        {"size", {20.0f, 120.0f}},
+        {"color", {90, 90, 90, 255}}
+    };
+    auto interiorWall2 = factory.createWall(10u, interiorWall2Config);
+    m_entityManager->addEntity(std::move(interiorWall2));
+
+    // Create enemies using factory with different behavior profiles and strategic positions
+    float enemyOffsetFromWall = 60.f;
+    float wallRightX = 480.f + 50.f;
+    
+    // First enemy: Aggressive patroller in main corridor
+    sf::Vector2f enemyPos(wallRightX + enemyOffsetFromWall, 200.f);
+    nlohmann::json enemy1Config = {
+        {"position", {enemyPos.x, enemyPos.y}},
+        {"size", {32.0f, 32.0f}},
+        {"speed", 100.0f},
+        {"visionRange", 200.0f},
+        {"attackRange", 24.0f},
+        {"behaviorProfile", "AGGRESSIVE"},
+        {"patrolPoints", {{enemyPos.x, enemyPos.y}, {enemyPos.x + 120.0f, enemyPos.y}}}
+    };
+    auto enemy1 = factory.createEnemy(3u, enemy1Config);
+    enemy1->setTargetPlayer(m_player);
+    m_entityManager->addEntity(std::move(enemy1));
+    
+    // Second enemy: Defensive guard in upper area
+    sf::Vector2f enemy2Pos(320.f, 160.f);
+    nlohmann::json enemy2Config = {
+        {"position", {enemy2Pos.x, enemy2Pos.y}},
+        {"size", {32.0f, 32.0f}},
+        {"speed", 80.0f},
+        {"visionRange", 180.0f},
+        {"attackRange", 24.0f},
+        {"behaviorProfile", "DEFENSIVE"},
+        {"patrolPoints", {{enemy2Pos.x, enemy2Pos.y}, {enemy2Pos.x + 100.0f, enemy2Pos.y}}}
+    };
+    auto enemy2 = factory.createEnemy(4u, enemy2Config);
     enemy2->setTargetPlayer(m_player);
-    // Keep ownership in EntityManager, but register pointer in EnemyManager
     ai::Enemy* enemy2Ptr = enemy2.get();
     m_entityManager->addEntity(std::move(enemy2));
+
+    // Third enemy: Sentinel in bottom corridor
+    sf::Vector2f enemy3Pos(450.f, 340.f);
+    nlohmann::json enemy3Config = {
+        {"position", {enemy3Pos.x, enemy3Pos.y}},
+        {"size", {28.0f, 28.0f}},
+        {"speed", 90.0f},
+        {"visionRange", 160.0f},
+        {"attackRange", 20.0f},
+        {"behaviorProfile", "AGGRESSIVE"},
+        {"patrolPoints", {{enemy3Pos.x, enemy3Pos.y}, {enemy3Pos.x - 80.0f, enemy3Pos.y}}}
+    };
+    auto enemy3 = factory.createEnemy(11u, enemy3Config);
+    enemy3->setTargetPlayer(m_player);
+    ai::Enemy* enemy3Ptr = enemy3.get();
+    m_entityManager->addEntity(std::move(enemy3));
+
+    // Fourth enemy: Roaming hunter in right area
+    sf::Vector2f enemy4Pos(600.f, 250.f);
+    nlohmann::json enemy4Config = {
+        {"position", {enemy4Pos.x, enemy4Pos.y}},
+        {"size", {30.0f, 30.0f}},
+        {"speed", 110.0f},
+        {"visionRange", 220.0f},
+        {"attackRange", 26.0f},
+        {"behaviorProfile", "AGGRESSIVE"},
+        {"patrolPoints", {{enemy4Pos.x, enemy4Pos.y}, {enemy4Pos.x, enemy4Pos.y + 60.0f}, {enemy4Pos.x - 40.0f, enemy4Pos.y + 60.0f}, {enemy4Pos.x - 40.0f, enemy4Pos.y}}}
+    };
+    auto enemy4 = factory.createEnemy(12u, enemy4Config);
+    enemy4->setTargetPlayer(m_player);
+    ai::Enemy* enemy4Ptr = enemy4.get();
+    m_entityManager->addEntity(std::move(enemy4));
+    
+    // Create EnemyManager and register all enemies for centralized planning
+    m_enemyManager = std::make_unique<ai::EnemyManager>();
+    if (auto e1 = dynamic_cast<ai::Enemy*>(m_entityManager->getEntity(3u))) {
+        m_enemyManager->addEnemyPointer(e1);
+    }
     m_enemyManager->addEnemyPointer(enemy2Ptr);
+    m_enemyManager->addEnemyPointer(enemy3Ptr);
+    m_enemyManager->addEnemyPointer(enemy4Ptr);
+    
+    Logger::instance().info("PlayScene: Created entities using Factory Pattern with configurations");
 
     // --- Gameplay: ItemManager & PuzzleManager example setup ---
     m_itemManager = std::make_unique<gameplay::ItemManager>(m_collisionManager.get(), m_uiManager.get());
     m_puzzleManager = std::make_unique<gameplay::PuzzleManager>();
     m_puzzleManager->setUIManager(m_uiManager.get());
+    
+    // --- Achievement System ---
+    m_achievementManager = std::make_unique<gameplay::AchievementManager>();
+    m_achievementManager->loadAchievements(); // Load existing progress
+    
+    // Set up achievement unlock callback for UI notifications
+    m_achievementManager->setOnAchievementUnlocked([this](const gameplay::Achievement& achievement) {
+        if (m_uiManager) {
+            std::string message = "¡Logro desbloqueado! " + achievement.name + ": " + achievement.description;
+            m_uiManager->showSuccessNotification(message, 5.0f);
+        }
+        core::Logger::instance().info("Achievement unlocked: " + achievement.name);
+    });
+    
+    // Connect achievement manager to item manager for collection tracking
+    m_itemManager->setAchievementManager(m_achievementManager.get());
+    
+    // Add strategic items throughout the station complex
+    // Medical supplies in safe alcoves
+    sf::Vector2f medkitPos1(250.f, 180.f); // Left corridor
+    auto medkit1 = std::make_unique<gameplay::Item>(100u, medkitPos1, sf::Vector2f(16.f, 16.f), gameplay::ItemType::Tool, m_collisionManager.get());
+    m_itemManager->addItem(std::move(medkit1));
+
+    sf::Vector2f medkitPos2(580.f, 320.f); // Bottom right area
+    auto medkit2 = std::make_unique<gameplay::Item>(101u, medkitPos2, sf::Vector2f(16.f, 16.f), gameplay::ItemType::Tool, m_collisionManager.get());
+    m_itemManager->addItem(std::move(medkit2));
+
+    // Energy cells in corners
+    sf::Vector2f energyPos1(220.f, 140.f); // Top left corner
+    auto energy1 = std::make_unique<gameplay::Item>(102u, energyPos1, sf::Vector2f(12.f, 12.f), gameplay::ItemType::Collectible, m_collisionManager.get());
+    m_itemManager->addItem(std::move(energy1));
+
+    sf::Vector2f energyPos2(620.f, 140.f); // Top right corner  
+    auto energy2 = std::make_unique<gameplay::Item>(103u, energyPos2, sf::Vector2f(12.f, 12.f), gameplay::ItemType::Collectible, m_collisionManager.get());
+    m_itemManager->addItem(std::move(energy2));
+
+    sf::Vector2f energyPos3(220.f, 350.f); // Bottom left corner
+    auto energy3 = std::make_unique<gameplay::Item>(104u, energyPos3, sf::Vector2f(12.f, 12.f), gameplay::ItemType::Collectible, m_collisionManager.get());
+    m_itemManager->addItem(std::move(energy3));
+
+    // Weapon/tools in central areas (high risk, high reward)
+    sf::Vector2f weaponPos1(400.f, 240.f); // Central area
+    auto weapon1 = std::make_unique<gameplay::Item>(105u, weaponPos1, sf::Vector2f(18.f, 18.f), gameplay::ItemType::Tool, m_collisionManager.get());
+    m_itemManager->addItem(std::move(weapon1));
+
+    sf::Vector2f weaponPos2(520.f, 190.f); // Near interior wall
+    auto weapon2 = std::make_unique<gameplay::Item>(106u, weaponPos2, sf::Vector2f(18.f, 18.f), gameplay::ItemType::Tool, m_collisionManager.get());
+    m_itemManager->addItem(std::move(weapon2));
+
+    // Key cards for puzzle elements
+    sf::Vector2f keycardPos1(350.f, 300.f); // Protected by enemy patrol
+    auto keycard1 = std::make_unique<gameplay::Item>(107u, keycardPos1, sf::Vector2f(14.f, 14.f), gameplay::ItemType::Key, m_collisionManager.get());
+    m_itemManager->addItem(std::move(keycard1));
+
+    sf::Vector2f keycardPos2(570.f, 280.f); // In enemy territory
+    auto keycard2 = std::make_unique<gameplay::Item>(108u, keycardPos2, sf::Vector2f(14.f, 14.f), gameplay::ItemType::Key, m_collisionManager.get());
+    m_itemManager->addItem(std::move(keycard2));
+
+    // Documents/lore items for worldbuilding
+    sf::Vector2f documentPos1(280.f, 210.f);
+    auto document1 = std::make_unique<gameplay::Item>(109u, documentPos1, sf::Vector2f(10.f, 10.f), gameplay::ItemType::Collectible, m_collisionManager.get());
+    m_itemManager->addItem(std::move(document1));
+
+    sf::Vector2f documentPos2(590.f, 170.f);
+    auto document2 = std::make_unique<gameplay::Item>(110u, documentPos2, sf::Vector2f(10.f, 10.f), gameplay::ItemType::Collectible, m_collisionManager.get());
+    m_itemManager->addItem(std::move(document2));
+
+    Logger::instance().info("PlayScene: Added 11 strategic items throughout station complex");
+    
+    // --- Achievement System ---
+    m_achievementManager = std::make_unique<gameplay::AchievementManager>();
+    m_achievementManager->loadAchievements(); // Load existing progress
+    
+    // Set up achievement unlock callback for UI notifications
+    m_achievementManager->setOnAchievementUnlocked([this](const gameplay::Achievement& achievement) {
+        if (m_uiManager) {
+            std::string message = "¡Logro desbloqueado! " + achievement.name + ": " + achievement.description;
+            m_uiManager->showSuccessNotification(message, 5.0f);
+        }
+        core::Logger::instance().info("Achievement unlocked: " + achievement.name);
+    });
+    
+    Logger::instance().info("PlayScene: Achievement system initialized");
+    
+    // Initialize auto-save system
+    m_saveManager = std::make_unique<core::SaveManager>();
+    m_saveManager->enableAutoSave(true);
+    m_saveManager->setAutoSaveInterval(120.0f);  // Auto-save every 2 minutes
+    Logger::instance().info("PlayScene: Auto-save system initialized (2 min interval)");
 
     // Load resources for interaction hint: try an icon first, fallback to font+text via FontHelper
     bool loadedIcon = false;
@@ -116,18 +321,37 @@ void PlayScene::onEnter() {
         }
     }
 
-    // Add two example items:
-    // 1) one 50 px below the player's spawn
+    // ==================== ITEM CREATION USING FACTORY ====================
+    // Create items using factory with different configurations
     sf::Vector2f playerItemPos = m_player ? (m_player->position() + sf::Vector2f(0.f, 50.f)) : sf::Vector2f(m_rect.getPosition().x, m_rect.getPosition().y + 50.f);
-    auto playerKey = std::make_unique<gameplay::Item>(10u, playerItemPos, sf::Vector2f(16.f,16.f), gameplay::ItemType::Key, m_collisionManager.get());
-    m_itemManager->addItem(std::move(playerKey));
+    
+    // Key item using factory
+    nlohmann::json keyConfig = {
+        {"position", {playerItemPos.x, playerItemPos.y}},
+        {"size", {16.0f, 16.0f}},
+        {"itemType", "KEY"},
+        {"value", 1}
+    };
+    auto playerKey = factory.createItem(10u, keyConfig);
+    if (auto itemPtr = dynamic_cast<gameplay::Item*>(playerKey.get())) {
+        itemPtr->setCollisionManager(m_collisionManager.get());
+        m_itemManager->addItem(std::unique_ptr<gameplay::Item>(static_cast<gameplay::Item*>(playerKey.release())));
+    }
 
-    // 2) one at the position of the example enemy (spawned earlier)
-    sf::Vector2f enemyItemPos = enemyPos; // place at enemy position
-    auto enemyKey = std::make_unique<gameplay::Item>(11u, enemyItemPos, sf::Vector2f(16.f,16.f), gameplay::ItemType::Collectible, m_collisionManager.get());
-    m_itemManager->addItem(std::move(enemyKey));
+    // Collectible item at enemy position
+    nlohmann::json collectibleConfig = {
+        {"position", {enemyPos.x, enemyPos.y}},
+        {"size", {16.0f, 16.0f}},
+        {"itemType", "COIN"},
+        {"value", 25}
+    };
+    auto enemyKey = factory.createItem(11u, collectibleConfig);
+    if (auto itemPtr = dynamic_cast<gameplay::Item*>(enemyKey.get())) {
+        itemPtr->setCollisionManager(m_collisionManager.get());
+        m_itemManager->addItem(std::unique_ptr<gameplay::Item>(static_cast<gameplay::Item*>(enemyKey.release())));
+    }
 
-    // Additional dispersed items across the scene
+    // Additional dispersed items using factory
     std::vector<sf::Vector2f> extraPositions = {
         sf::Vector2f(120.f, 200.f),
         sf::Vector2f(300.f, 80.f),
@@ -136,8 +360,17 @@ void PlayScene::onEnter() {
     };
     uint32_t extraId = 100;
     for (const auto& p : extraPositions) {
-        auto it = std::make_unique<gameplay::Item>(extraId++, p, sf::Vector2f(12.f,12.f), gameplay::ItemType::Collectible, m_collisionManager.get());
-        m_itemManager->addItem(std::move(it));
+        nlohmann::json itemConfig = {
+            {"position", {p.x, p.y}},
+            {"size", {12.0f, 12.0f}},
+            {"itemType", "HEALTH_POTION"},
+            {"value", 10}
+        };
+        auto item = factory.createItem(extraId++, itemConfig);
+        if (auto itemPtr = dynamic_cast<gameplay::Item*>(item.get())) {
+            itemPtr->setCollisionManager(m_collisionManager.get());
+            m_itemManager->addItem(std::unique_ptr<gameplay::Item>(static_cast<gameplay::Item*>(item.release())));
+        }
     }
 
     // Wire item->puzzle binding for demo: picking player-item id=10 completes puzzle id=20 step 0
@@ -163,6 +396,10 @@ void PlayScene::onEnter() {
 }
 
 void PlayScene::onExit() {
+    // Save achievements before leaving the scene
+    if (m_achievementManager) {
+        m_achievementManager->saveAchievements();
+    }
     Logger::instance().info("PlayScene: onExit");
 }
 
@@ -192,6 +429,14 @@ void PlayScene::update(float dt) {
     // If PauseMenu is active, freeze game logic (don't process movement/AI)
     if (m_uiManager && m_uiManager->isMenuActive("PauseMenu")) {
         return; // game frozen while paused
+    }
+
+    // Track survival time for achievements (only when not paused)
+    m_survivalTime += dt;
+    if (m_achievementManager) {
+        // Update survival achievements
+        m_achievementManager->updateProgress("survivor", static_cast<int>(m_survivalTime));
+        m_achievementManager->updateProgress("veteran_survivor", static_cast<int>(m_survivalTime));
     }
 
     auto& im = InputManager::getInstance();
@@ -291,6 +536,24 @@ void PlayScene::update(float dt) {
                 m_itemManager->interactWithItem(m_nearbyItemId, m_player);
             }
         }
+    }
+
+    // Update auto-save system
+    if (m_saveManager && m_player) {
+        // Create a basic game state for auto-save
+        core::GameState currentState;
+        
+        // Add player state
+        core::GameState::PlayerState playerState;
+        playerState.id = m_player->id();
+        auto pos = m_player->position();
+        playerState.x = pos.x;
+        playerState.y = pos.y;
+        playerState.health = 100; // Default health for now
+        
+        currentState.players.push_back(playerState);
+        
+        m_saveManager->update(dt, currentState);
     }
 
     // Update UI manager (menus input & logic)

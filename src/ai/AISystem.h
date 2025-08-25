@@ -79,8 +79,16 @@ public:
     void addTarget(entities::Entity* target, Priority priority = Priority::MEDIUM);
     void removeTarget(entities::Entity* target);
     void clearTargets();
+    bool hasTarget() const;
+    void setTarget(uint32_t entityId, const sf::Vector2f& position);
+    void clearTarget();
+    sf::Vector2f getTargetPosition() const;
     entities::Entity* getPrimaryTarget() const;
     const std::vector<entities::Entity*>& getAllTargets() const { return targets_; }
+    
+    // State management
+    void setState(AIState state);
+    AIState getState() const { return currentState_; }
     
     // External events
     void onDamageReceived(float damage, entities::Entity* source);
@@ -139,6 +147,11 @@ private:
     std::vector<entities::Entity*> targets_;
     std::unordered_map<entities::Entity*, Priority> targetPriorities_;
     entities::Entity* primaryTarget_;
+    
+    // Simple target tracking (for Strategy Pattern)
+    bool hasSimpleTarget_;
+    uint32_t simpleTargetId_;
+    sf::Vector2f simpleTargetPosition_;
     
     // Patrol and movement
     std::vector<sf::Vector2f> patrolPoints_;

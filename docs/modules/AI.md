@@ -52,3 +52,7 @@ SFML 3.x, `CollisionManager`, `EntityManager`, Google Test para tests.
 ## 7. Historial / Backups
 Originales consolidados en `docs/backups/20250824/` (ver `changelog_docs_unify_20250824.md`).
 
+### Notas de cambios (2025-08-24)
+- Se verificó la salida de logs de IA y se confirmó que los caracteres acentuados ahora se muestran correctamente tras cambios en el subsistema de Logger en Core.
+ 
+

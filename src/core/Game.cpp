@@ -48,8 +48,11 @@ Game::Game(unsigned int width, unsigned int height, const std::string& title)
             std::cerr << "Error: assets/sounds folder not found (searched upwards)\n";
         }
 
-        m_backgroundTexture = AssetManager::instance().getTexture("background");
-        if (!m_backgroundTexture) {
+        // Prefer scenes to own their backgrounds; only keep a global background if explicitly present
+        if (AssetManager::instance().hasTexture("background")) {
+            m_backgroundTexture = AssetManager::instance().getTexture("background");
+        } else {
+            m_backgroundTexture.reset();
             std::cerr << "Warning: background texture not found\n";
         }
 
@@ -57,8 +60,8 @@ Game::Game(unsigned int width, unsigned int height, const std::string& title)
         if (m_sfxBuffer) {
             // sf::Sound requires a buffer at construction in this SFML version
             m_sound = std::make_unique<sf::Sound>(*m_sfxBuffer);
-            // Play looped for demo
-            m_sound->setLooping(true);
+            // Do not loop demo SFX here; background music should be the only looping track
+            m_sound->setLooping(false);
         } else {
             std::cerr << "Warning: sound_test sound not found\n";
         }
@@ -146,26 +149,13 @@ void Game::run()
         // Update other game logic
         update(deltaTime);
 
-        // Render: first background, then current scene, then display
-        m_window.clear(sf::Color::Black);
+    // Render: clear and let current scene render; scenes own their backgrounds now
+    m_window.clear(sf::Color::Black);
 
-        // Draw background if available
-        if (m_backgroundTexture) {
-            sf::Sprite bg(*m_backgroundTexture);
-            auto winSize = m_window.getSize();
-            sf::Vector2f texSize(static_cast<float>(m_backgroundTexture->getSize().x), static_cast<float>(m_backgroundTexture->getSize().y));
-            if (texSize.x > 0 && texSize.y > 0) {
-                float scaleX = static_cast<float>(winSize.x) / texSize.x;
-                float scaleY = static_cast<float>(winSize.y) / texSize.y;
-                bg.setScale(sf::Vector2f(scaleX, scaleY));
-            }
-            m_window.draw(bg);
-        }
+    // Delegate rendering to the current scene (scenes should draw their own backgrounds)
+    m_sceneManager->render(m_window);
 
-        // Let current scene render
-        m_sceneManager->render(m_window);
-
-        m_window.display();
+    m_window.display();
     }
 }
 

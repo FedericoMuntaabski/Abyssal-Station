@@ -39,14 +39,18 @@ add_executable(AbyssalStation
     src/scene/SceneManager.cpp
     src/scene/MenuScene.cpp
     src/scene/PlayScene.cpp
+    src/scene/LoadingScene.cpp
     src/scene/SaveIntegration.cpp
     src/scene/Scene.h
     src/scene/SceneManager.h
     src/scene/MenuScene.h
     src/scene/PlayScene.h
+    src/scene/LoadingScene.h
     # Input module
     src/input/InputManager.cpp
     src/input/InputManager.h
+    src/input/CommandSystem.cpp
+    src/input/CommandSystem.h
     # Entities
     src/entities/Entity.cpp
     src/entities/Entity.h
@@ -58,6 +62,8 @@ add_executable(AbyssalStation
     src/entities/EntityManager.h
     src/entities/MovementHelper.cpp
     src/entities/MovementHelper.h
+    src/entities/EntityFactory.cpp
+    src/entities/EntityFactory.h
 
     # AI module
     src/ai/AIState.cpp
@@ -74,6 +80,8 @@ add_executable(AbyssalStation
     src/ai/Enemy.h
     src/ai/EnemyManager.cpp
     src/ai/EnemyManager.h
+    # src/ai/BehaviorStrategy.cpp
+    # src/ai/BehaviorStrategy.h
 
     # Collisions module
     src/collisions/CollisionBox.cpp
@@ -93,9 +101,13 @@ add_executable(AbyssalStation
     src/gameplay/ItemManager.cpp
     src/gameplay/Puzzle.cpp
     src/gameplay/PuzzleManager.cpp
+    src/gameplay/AchievementManager.cpp
     src/core/SaveManager.cpp
     # Debug scene for pickup test
     src/scene/DebugPickupScene.cpp
+    # Audio module
+    src/audio/AudioManager.cpp
+    src/audio/AudioManager.h
     # UI module
     src/ui/Menu.cpp
     src/ui/MainMenu.cpp
@@ -104,6 +116,7 @@ add_executable(AbyssalStation
     src/ui/OptionsMenu.cpp
     src/ui/UIManager.cpp
     src/ui/InputHelper.cpp
+    src/ui/CustomCursor.cpp
 )
 
 target_include_directories(AbyssalStation PRIVATE ${CMAKE_SOURCE_DIR}/src)

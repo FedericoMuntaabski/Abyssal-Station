@@ -20,9 +20,12 @@ ConfigManager::ConfigManager(const std::string& configDir)
 void ConfigManager::setDefaults()
 {
     m_volume = 100;
+    m_musicVolume = 80;
+    m_uiVolume = 90;
     m_language = "es";
     m_width = 1920;
     m_height = 1080;
+    m_fullscreen = false;
     m_version = 1;
     m_notificationDuration = 3.0f;
 }
@@ -58,12 +61,27 @@ bool ConfigManager::loadConfig()
             m_version = j["version"].get<int>();
         }
 
-        if (j.contains("volume") && j["volume"].is_number_integer()) m_volume = j["volume"].get<int>();
+        if (j.contains("volume")) {
+            if (j["volume"].is_number_integer()) {
+                // Old format compatibility
+                m_volume = j["volume"].get<int>();
+            } else if (j["volume"].is_object()) {
+                // New format with separate volumes
+                auto &vol = j["volume"];
+                if (vol.contains("master") && vol["master"].is_number_integer()) m_volume = vol["master"].get<int>();
+                if (vol.contains("music") && vol["music"].is_number_integer()) m_musicVolume = vol["music"].get<int>();
+                if (vol.contains("ui") && vol["ui"].is_number_integer()) m_uiVolume = vol["ui"].get<int>();
+            }
+        }
         if (j.contains("language") && j["language"].is_string()) m_language = j["language"].get<std::string>();
         if (j.contains("resolution") && j["resolution"].is_object()) {
             auto &r = j["resolution"];
             if (r.contains("width") && r["width"].is_number_integer()) m_width = r["width"].get<int>();
             if (r.contains("height") && r["height"].is_number_integer()) m_height = r["height"].get<int>();
+        }
+        if (j.contains("display") && j["display"].is_object()) {
+            auto &d = j["display"];
+            if (d.contains("fullscreen") && d["fullscreen"].is_boolean()) m_fullscreen = d["fullscreen"].get<bool>();
         }
         if (j.contains("notificationDuration") && j["notificationDuration"].is_number()) m_notificationDuration = j["notificationDuration"].get<float>();
 
@@ -88,9 +106,14 @@ bool ConfigManager::saveConfig() const
 
         json j;
         j["version"] = m_version;
-        j["volume"] = m_volume;
+        j["volume"] = { 
+            {"master", m_volume}, 
+            {"music", m_musicVolume}, 
+            {"ui", m_uiVolume} 
+        };
         j["language"] = m_language;
         j["resolution"] = { {"width", m_width}, {"height", m_height} };
+        j["display"] = { {"fullscreen", m_fullscreen}, {"vsync", true} };
         j["notificationDuration"] = m_notificationDuration;
 
         std::ofstream out(m_configPath);

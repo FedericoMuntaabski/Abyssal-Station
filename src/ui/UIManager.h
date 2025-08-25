@@ -2,6 +2,7 @@
 #define ABYSSAL_STATION_SRC_UI_UIMANAGER_H
 
 #include "Menu.h"
+#include "CustomCursor.h"
 #include <SFML/Graphics/Color.hpp>
 #include <SFML/Graphics/Font.hpp>
 #include <vector>
@@ -26,6 +27,7 @@ struct UIEvents {
     std::function<void()> onBindingChanged;
     std::function<void()> onSaveGame;
     std::function<void()> onLoadGame;
+    std::function<void()> onReturnToMainMenu;
 };
 
 // Animation types for menu transitions
@@ -70,6 +72,20 @@ public:
                          float duration = 3.0f, sf::Color color = sf::Color::White);
     void showToast(const std::string& text, float duration = 2.0f, sf::Color color = sf::Color::White);
     
+    // Convenience methods for common notification types with predefined colors
+    void showErrorNotification(const std::string& text, float duration = 4.0f) {
+        showNotification(text, NotificationPriority::High, duration, sf::Color::Red);
+    }
+    void showWarningNotification(const std::string& text, float duration = 3.5f) {
+        showNotification(text, NotificationPriority::Normal, duration, sf::Color::Yellow);
+    }
+    void showSuccessNotification(const std::string& text, float duration = 3.0f) {
+        showNotification(text, NotificationPriority::Normal, duration, sf::Color::Green);
+    }
+    void showInfoNotification(const std::string& text, float duration = 2.5f) {
+        showNotification(text, NotificationPriority::Low, duration, sf::Color::Cyan);
+    }
+    
     // Lightweight notifications from game systems (item pickup, puzzle completion)
     void notifyItemCollected(std::uint32_t id);
     void notifyItemCollected(std::uint32_t id, sf::Color iconColor);
@@ -85,6 +101,13 @@ public:
     // Font and styling
     void setFont(const sf::Font& font);
     void setTheme(const std::string& themeName);
+    
+    // Custom cursor management
+    void enableCustomCursor(bool enabled = true);
+    void disableCustomCursor() { enableCustomCursor(false); }
+    bool isCustomCursorEnabled() const;
+    void setCustomCursorScale(float scale);
+    void setCustomCursorOffset(const sf::Vector2f& offset);
     
     // UI state and accessibility
     void setPaused(bool p) { m_paused = p; }
@@ -114,6 +137,7 @@ public:
     void triggerBindingChanged();
     void triggerSaveGame();
     void triggerLoadGame();
+    void triggerReturnToMainMenu();
 
 private:
     struct MenuEntry {
@@ -148,6 +172,9 @@ private:
     sf::Font m_font;
     bool m_fontLoaded{false};
     std::string m_currentTheme{"default"};
+    
+    // Custom cursor
+    std::unique_ptr<CustomCursor> m_customCursor;
     
     // Accessibility and input
     bool m_accessibilityMode{false};

@@ -12,23 +12,23 @@ tags: [status, implementation, complete]
 Sistema completo de gestión de escenas con pila LIFO (`SceneManager`), menú principal navegable, menú de opciones comprehensivo, y escena de juego que demuestra todas las funcionalidades de los módulos del proyecto. Incluye `SaveIntegration` para snapshot/restauración del `GameState`.
 
 ## 2. Estado actual
-✅ **COMPLETO Y OPERATIVO** - Todas las características requeridas implementadas y probadas:
+✅ **COMPLETO Y OPERATIVO** - Todas las características requeridas implementadas y probadas con fixes criticos aplicados:
 
 ### Funcionalidades Implementadas:
-- **Menú Principal**: "Jugar (Solo)", "Crear Sala" (placeholder), "Opciones", "Salir"
+- **Menú Principal**: "Jugar (Solo)" con transición funcional, "Crear Sala" (placeholder), "Opciones", "Salir"
 - **Navegación**: Teclado (W/S/Flechas) y mouse (hover) con retroalimentación visual
-- **Selección**: Enter y click izquierdo funcionando
-- **Menú Opciones**: Resolución, volumen, reasignación de teclas
-- **Escena de Juego**: Demostración integrada de todos los módulos
-- **Sistema de Notificaciones**: Feedback visual para acciones del usuario
+- **Selección**: Enter y click izquierdo funcionando sin spam
+- **Menú Opciones**: Resolución, volumen, reasignación de teclas - ya no crashea
+- **Escena de Juego**: Demostración integrada de todos los módulos con auto-save
+- **Sistema de Notificaciones**: Feedback visual para acciones del usuario con colores contextuales
 
 ### Módulos Demostrados en PlayScene:
 - **IA**: Enemigos con patrullaje, detección de jugador, máquinas de estado
-- **Colisiones**: Detección de colisiones, zonas de interacción, partición espacial
+- **Colisiones**: Detección de colisiones optimizada, zonas de interacción, partición espacial
 - **Entidades**: Jugador, enemigos, paredes, ítems con renderizado
 - **Gameplay**: Recolección de ítems, resolución de puzzles, progresión
 - **Input**: Controles responsivos, detección de dispositivo, ayuda contextual
-- **UI**: Menús, notificaciones, hints de interacción, funcionalidad de pausa
+- **UI**: Menús sin tildes, notificaciones, hints de interacción, funcionalidad de pausa
 
 ## 3. Implementación detallada
 
@@ -37,14 +37,16 @@ Sistema completo de gestión de escenas con pila LIFO (`SceneManager`), menú pr
 - Delegación de eventos y renderizado
 - Transiciones suaves entre escenas
 
-### MenuScene
+### MenuScene ✅ **FIXED**
 - Integración con `UIManager` para menú principal
+- **Event Callbacks**: Implementados callbacks para "Jugar (Solo)" con transición MenuScene → LoadingScene → PlayScene
 - Navegación por teclado y mouse
 - Soporte para notificaciones
-- Transición a `PlayScene` o `OptionsMenu`
+- Transición a `PlayScene` o `OptionsMenu` funcional
 
-### PlayScene
+### PlayScene ✅ **ENHANCED**
 - Orquesta todos los managers (entities, collisions, AI, gameplay)
+- **Auto-Save Integration**: SaveManager::update() llamado en cada frame para auto-save cada 2 minutos
 - Utiliza compute->validate->commit para movimiento
 - Demuestra características de todos los módulos
 - Sistema de pausa integrado
@@ -110,3 +112,14 @@ Sistema completo de gestión de escenas con pila LIFO (`SceneManager`), menú pr
 - **Localización**: Soporte multi-idioma
 - **Gráficos Avanzados**: Shaders, partículas
 - **Sonido**: Música de fondo, efectos de sonido
+
+### Notas de cambios (2025-08-24)
+- Se movió la responsabilidad del dibujo del background desde `Game` a las escenas individuales para evitar mostrar texturas obsoletas cuando los archivos cambian o se eliminan.
+- `LoadingScene` y `MainMenu` ya gestionan sus propios fondos; `SceneManager` sigue encargando la transición entre escenas.
+
+### Cambios recientes (2025-08-24) — delta
+
+- Se corrigieron caracteres con tildes en `LoadingScene` y textos de UI para evitar problemas de encoding (strings normalizados sin tildes donde era necesario).
+- `PlayScene` fue mejorada con un layout estacional más complejo: 7 paredes estratégicas, 4 enemigos con comportamientos variados y 11 ítems distribuidos (medkits, celdas de energía, llaves, documentos). Integración directa con el sistema de logros (AchievementManager).
+- Se añadió integración y mejoras de la UI de pausa (`PauseMenu`) para asegurar que reciba y procese correctamente la entrada (mouse y teclado). Se agregaron logs de depuración para verificar la activación y salida del menú.
+- Se integró un `AudioManager` a nivel de escena/núcleo para manejar música y SFX dinámicos (fade/crossfade). Ver `Core` y `UI` para detalles de uso.

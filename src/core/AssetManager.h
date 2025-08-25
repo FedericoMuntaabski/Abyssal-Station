@@ -22,6 +22,11 @@ public:
 	std::shared_ptr<sf::Texture> getTexture(const std::string& name) const;
 	std::shared_ptr<sf::SoundBuffer> getSound(const std::string& name) const;
 
+	// Utilities for runtime invalidation and reloads
+	bool hasTexture(const std::string& name) const;
+	void removeTexture(const std::string& name);
+	void reloadTexturesFrom(const std::string& folderPath);
+
 	// Non-copyable
 	AssetManager(const AssetManager&) = delete;
 	AssetManager& operator=(const AssetManager&) = delete;
