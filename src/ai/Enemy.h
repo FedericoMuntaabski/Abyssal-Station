@@ -61,7 +61,47 @@ public:
     // Event handling
     void onDamageReceived(float damage, entities::Entity* source);
     void onSoundHeard(const sf::Vector2f& soundPosition, float intensity);
-
+    
+    // NEW: Advanced AI behaviors from roadmap
+    void onPlayerDetected(const sf::Vector2f& playerPosition, PerceptionType perceptionType);
+    void onPlayerLost();
+    void shareInformation(const sf::Vector2f& playerPosition, float confidence);
+    void receiveInformation(const sf::Vector2f& playerPosition, float confidence, Id sourceEnemyId);
+    
+    // NEW: Multi-modal perception system
+    bool detectPlayerBySight(const sf::Vector2f& playerPos) const;
+    bool detectPlayerBySound(const sf::Vector2f& playerPos, float noiseLevel) const;
+    bool detectPlayerByVibration(const sf::Vector2f& playerPos) const;
+    bool detectPlayerByLight(const sf::Vector2f& playerPos, bool flashlightOn) const;
+    
+    // NEW: Memory and persistence system
+    void rememberPlayerPosition(const sf::Vector2f& position);
+    sf::Vector2f getLastKnownPlayerPosition() const { return lastKnownPlayerPosition_; }
+    float getTimeSinceLastSighting() const { return timeSinceLastSighting_; }
+    bool hasRecentPlayerMemory() const { return timeSinceLastSighting_ < memoryDuration_; }
+    
+    // NEW: Psychological warfare and stalking
+    void enterStalkMode(const sf::Vector2f& playerPosition);
+    void performPsychologicalAttack();
+    void generateAmbientNoise();
+    bool isInStalkMode() const { return isStalkMode_; }
+    
+    // NEW: Attack variations
+    void performPhysicalAttack(entities::Player& player);
+    void performPsychologicalAttack(entities::Player& player);
+    void performAmbushAttack(entities::Player& player);
+    int calculateAttackDamage() const;
+    
+    // NEW: Communication and coordination
+    void alertNearbyEnemies(const sf::Vector2f& playerPosition);
+    void escalateAlert();
+    bool isInCommunicationRange(const Enemy& other) const;
+    
+    // NEW: Prediction and intelligence
+    sf::Vector2f predictPlayerMovement(const sf::Vector2f& playerPos, const sf::Vector2f& playerVelocity) const;
+    void updatePlayerMovementHistory(const sf::Vector2f& playerPos);
+    sf::Vector2f getOptimalInterceptPosition(const sf::Vector2f& playerPos, const sf::Vector2f& playerVelocity) const;
+    
     // Legacy methods (for backward compatibility)
     bool detectPlayer(const sf::Vector2f& playerPos) const;
     bool detectPlayer() const;
@@ -120,6 +160,41 @@ private:
     float attackTimer_{0.f};
     // Intended movement API (compute but don't commit until collision checks)
     sf::Vector2f intendedPosition_{0.f, 0.f};
+    
+    // NEW: Advanced AI state variables
+    sf::Vector2f lastKnownPlayerPosition_{0.f, 0.f};
+    float timeSinceLastSighting_{0.f};
+    float memoryDuration_{30.0f};          // Remember player for 30 seconds
+    float alertLevel_{0.0f};               // 0.0-1.0 alert state
+    bool isStalkMode_{false};              // Psychological stalking mode
+    float stalkTimer_{0.0f};               // Time spent stalking
+    float stalkDistance_{100.0f};          // Distance to maintain while stalking
+    
+    // NEW: Perception capabilities
+    float hearingRange_{200.0f};           // Sound detection range
+    float vibrationRange_{50.0f};          // Vibration detection range
+    float lightDetectionRange_{150.0f};    // Light source detection
+    float communicationRange_{300.0f};     // Range to alert other enemies
+    
+    // NEW: Attack variations
+    int baseDamage_{25};                   // Base physical damage
+    float criticalChance_{0.1f};           // 10% critical hit chance
+    float ambushDamageMultiplier_{2.0f};   // 2x damage for ambush attacks
+    
+    // NEW: Movement prediction
+    std::vector<sf::Vector2f> playerMovementHistory_;
+    size_t maxHistorySize_{5};             // Track last 5 positions
+    float predictionAccuracy_{0.7f};       // 70% accuracy in predictions
+    
+    // NEW: Psychological effects
+    float psychologicalDamage_{25.0f};     // Fatigue damage from fear
+    float intimidationRadius_{80.0f};      // Battery drain radius
+    float batteryDrainRate_{1.0f};        // 1 point per second in proximity
+    
+    // NEW: Communication and coordination
+    float lastCommunicationTime_{0.0f};
+    std::vector<std::pair<sf::Vector2f, float>> sharedInformation_; // Position, confidence pairs
+    bool hasEscalatedAlert_{false};
     
     // Mode selection
     bool useEnhancedAI_{false};

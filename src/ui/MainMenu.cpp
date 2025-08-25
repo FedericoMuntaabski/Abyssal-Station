@@ -49,6 +49,11 @@ void MainMenu::onEnter() {
 }
 
 void MainMenu::onExit() {
+    // Stop background music when leaving main menu
+    if (m_backgroundMusic.getStatus() == sf::SoundSource::Status::Playing) {
+        m_backgroundMusic.stop();
+        core::Logger::instance().info("MainMenu: Background music stopped");
+    }
     core::Logger::instance().info("MainMenu: Exited main menu");
 }
 
@@ -74,25 +79,21 @@ void MainMenu::handleInput() {
     }
 
     if (im.isActionJustPressed(input::Action::Confirm)) {
-        // Prevent multiple activations
-        if (m_gameStarting) return;
-        
         const auto& choice = m_options[m_selected];
         playConfirmSound();
         core::Logger::instance().info("MainMenu selected: " + choice);
         
         if (choice == "Jugar (Solo)") {
-            m_gameStarting = true;  // Set flag to prevent repeated triggering
             if (m_uiManager) {
                 m_uiManager->triggerStartGame();
             }
             // Scene management is handled by UIManager events
         } else if (choice == "Crear Sala") {
             // TODO: Placeholder for multiplayer room creation
-            core::Logger::instance().info("Crear Sala selected - Funcionalidad pendiente de implementacion");
+            core::Logger::instance().info("Crear Sala selected - Funcionalidad pendiente de implementación");
             if (m_uiManager) {
                 // Show a notification that this feature is pending
-                m_uiManager->showNotification("Crear Sala: Funcionalidad pendiente para implementacion futura", 
+                m_uiManager->showNotification("Crear Sala: Funcionalidad pendiente para implementación futura", 
                                             ui::UIManager::NotificationPriority::Normal, 4.0f, sf::Color::Yellow);
             }
         } else if (choice == "Opciones") {

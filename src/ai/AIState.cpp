@@ -14,6 +14,14 @@ const char* stateToString(AIState state) {
         case AIState::ALERT: return "ALERT";
         case AIState::STUNNED: return "STUNNED";
         case AIState::DEAD: return "DEAD";
+        // NEW: Advanced states
+        case AIState::INVESTIGATE_NOISE: return "INVESTIGATE_NOISE";
+        case AIState::PREDICT_MOVEMENT: return "PREDICT_MOVEMENT";
+        case AIState::STALK: return "STALK";
+        case AIState::AMBUSH: return "AMBUSH";
+        case AIState::COMMUNICATE: return "COMMUNICATE";
+        case AIState::SEARCH_LAST_KNOWN: return "SEARCH_LAST_KNOWN";
+        case AIState::ESCALATE_ALERT: return "ESCALATE_ALERT";
         default: return "UNKNOWN";
     }
 }
@@ -26,6 +34,11 @@ const char* profileToString(BehaviorProfile profile) {
         case BehaviorProfile::PASSIVE: return "PASSIVE";
         case BehaviorProfile::GUARD: return "GUARD";
         case BehaviorProfile::SCOUT: return "SCOUT";
+        // NEW: Advanced profiles
+        case BehaviorProfile::STALKER: return "STALKER";
+        case BehaviorProfile::AMBUSHER: return "AMBUSHER";
+        case BehaviorProfile::COMMUNICATOR: return "COMMUNICATOR";
+        case BehaviorProfile::PERSISTENT: return "PERSISTENT";
         default: return "UNKNOWN";
     }
 }
@@ -36,6 +49,11 @@ const char* perceptionToString(PerceptionType type) {
         case PerceptionType::HEARING: return "HEARING";
         case PerceptionType::PROXIMITY: return "PROXIMITY";
         case PerceptionType::MEMORY: return "MEMORY";
+        // NEW: Advanced perception
+        case PerceptionType::VIBRATION: return "VIBRATION";
+        case PerceptionType::LIGHT: return "LIGHT";
+        case PerceptionType::PREDICTION: return "PREDICTION";
+        case PerceptionType::COMMUNICATION: return "COMMUNICATION";
         default: return "UNKNOWN";
     }
 }

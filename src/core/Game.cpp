@@ -57,15 +57,8 @@ Game::Game(unsigned int width, unsigned int height, const std::string& title)
             std::cerr << "Warning: background texture not found\n";
         }
 
-        m_sfxBuffer = AssetManager::instance().getSound("sound_test");
-        if (m_sfxBuffer) {
-            // sf::Sound requires a buffer at construction in this SFML version
-            m_sound = std::make_unique<sf::Sound>(*m_sfxBuffer);
-            // Do not loop demo SFX here; background music should be the only looping track
-            m_sound->setLooping(false);
-        } else {
-            std::cerr << "Warning: sound_test sound not found\n";
-        }
+        // Note: Removed sound_test loading - only background_music.wav should be used
+        // All UI sounds are managed by individual UI components (MainMenu, PauseMenu, etc.)
     } catch (const std::exception& e) {
         std::cerr << "Asset loading error: " << e.what() << std::endl;
     }

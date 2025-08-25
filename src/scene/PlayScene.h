@@ -6,12 +6,15 @@
 #include "../ai/EnemyManager.h"
 #include "../gameplay/ItemManager.h"
 #include "../gameplay/PuzzleManager.h"
+#include "../gameplay/NoiseSystem.h"
+#include "../gameplay/VisionSystem.h"
 #include "../core/SaveManager.h"
 #include "../debug/DebugConsole.h"
 #include "../debug/DebugOverlay.h"
+#include "../ui/SurvivalHUD.h"
 
 namespace scene { class SceneManager; }
-namespace ui { class UIManager; }
+namespace ui { class UIManager; class PauseMenu; }
 
 namespace entities { class Player; class EntityManager; class Wall; }
 namespace collisions { class CollisionManager; class CollisionSystem; }
@@ -33,6 +36,7 @@ public:
 private:
     SceneManager* m_manager{nullptr};
     std::unique_ptr<ui::UIManager> m_uiManager;
+    std::unique_ptr<ui::PauseMenu> m_pauseMenu;
     sf::RectangleShape m_rect;
     sf::Vector2f m_velocity{0.f, 0.f};
     float m_speed{200.f};
@@ -48,12 +52,19 @@ private:
     std::unique_ptr<gameplay::ItemManager> m_itemManager;
     std::unique_ptr<gameplay::PuzzleManager> m_puzzleManager;
     
+    // NEW: Advanced gameplay systems  
+    std::unique_ptr<gameplay::NoiseSystem> m_noiseSystem;
+    std::unique_ptr<gameplay::VisionSystem> m_visionSystem;
+    
     // Auto-save system
     std::unique_ptr<core::SaveManager> m_saveManager;
     
     // Debug systems
     std::unique_ptr<debug::DebugConsole> m_debugConsole;
     std::unique_ptr<debug::DebugOverlay> m_debugOverlay;
+    
+    // NEW: Survival HUD system
+    std::unique_ptr<ui::SurvivalHUD> m_survivalHUD;
     
     // Achievement tracking
     float m_survivalTime{0.0f};

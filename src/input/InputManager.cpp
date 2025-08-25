@@ -15,6 +15,16 @@ static const char* actionToString(Action a) {
         case Action::Confirm: return "Confirm";
         case Action::Cancel: return "Cancel";
         case Action::Pause: return "Pause";
+        case Action::Interact: return "Interact";
+        case Action::Run: return "Run";
+        case Action::Attack: return "Attack";
+        case Action::ToggleFlashlight: return "ToggleFlashlight";
+        case Action::Crouch: return "Crouch";
+        case Action::HotbarSlot1: return "HotbarSlot1";
+        case Action::HotbarSlot2: return "HotbarSlot2";
+        case Action::HotbarSlot3: return "HotbarSlot3";
+        case Action::HotbarSlot4: return "HotbarSlot4";
+        case Action::OpenInventory: return "OpenInventory";
         default: return "Unknown";
     }
 }
@@ -80,6 +90,17 @@ InputManager::InputManager() {
     bindKey(Action::Cancel, sf::Keyboard::Key::Escape);
     bindKey(Action::Interact, sf::Keyboard::Key::E);
     bindKey(Action::Pause, sf::Keyboard::Key::P);
+    bindKey(Action::Run, sf::Keyboard::Key::LShift);
+    
+    // NEW: Survival and combat bindings
+    bindKey(Action::Attack, sf::Keyboard::Key::Space);
+    bindKey(Action::ToggleFlashlight, sf::Keyboard::Key::F);
+    bindKey(Action::Crouch, sf::Keyboard::Key::LControl);
+    bindKey(Action::HotbarSlot1, sf::Keyboard::Key::Num1);
+    bindKey(Action::HotbarSlot2, sf::Keyboard::Key::Num2);
+    bindKey(Action::HotbarSlot3, sf::Keyboard::Key::Num3);
+    bindKey(Action::HotbarSlot4, sf::Keyboard::Key::Num4);
+    bindKey(Action::OpenInventory, sf::Keyboard::Key::Tab);
 
     // Default mouse bindings: left click -> Confirm
     bindMouse(Action::Confirm, sf::Mouse::Button::Left);

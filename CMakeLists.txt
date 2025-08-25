@@ -106,6 +106,10 @@ add_executable(AbyssalStation
     src/gameplay/ItemManager.cpp
     src/gameplay/Puzzle.cpp
     src/gameplay/PuzzleManager.cpp
+    # NEW: Advanced gameplay systems
+    src/gameplay/NoiseSystem.cpp
+    src/gameplay/VisionSystem.cpp
+    src/gameplay/InventorySystem.cpp
     src/core/SaveManager.cpp
     # Debug scene for pickup test
     src/scene/DebugPickupScene.cpp
@@ -118,6 +122,7 @@ add_executable(AbyssalStation
     src/ui/UIManager.cpp
     src/ui/InputHelper.cpp
     src/ui/CustomCursor.cpp
+    src/ui/SurvivalHUD.cpp
 )
 
 target_include_directories(AbyssalStation PRIVATE ${CMAKE_SOURCE_DIR}/src)

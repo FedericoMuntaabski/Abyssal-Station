@@ -15,7 +15,16 @@ enum class Action : std::uint8_t {
     Confirm,
     Cancel,
     Interact,
-    Pause
+    Pause,
+    Run,
+    Attack,
+    ToggleFlashlight,
+    Crouch,
+    HotbarSlot1,
+    HotbarSlot2,
+    HotbarSlot3,
+    HotbarSlot4,
+    OpenInventory
 };
 
 } // namespace input

@@ -41,7 +41,10 @@ void PlayScene::onEnter() {
     m_rect.setPosition(sf::Vector2f(200.f, 150.f));
     Logger::instance().info("PlayScene: onEnter");
 
-    // create UI manager for pause/options menus
+    // Initialize pause menu with simplified interface
+    m_pauseMenu = std::make_unique<ui::PauseMenu>(m_manager);
+
+    // create UI manager for options and other menus
     m_uiManager = std::make_unique<ui::UIManager>();
 
     // Initialize entity manager and a player
@@ -183,6 +186,12 @@ void PlayScene::onEnter() {
     m_itemManager = std::make_unique<gameplay::ItemManager>(m_collisionManager.get(), m_uiManager.get());
     m_puzzleManager = std::make_unique<gameplay::PuzzleManager>();
     m_puzzleManager->setUIManager(m_uiManager.get());
+    
+    // --- NEW: Initialize advanced gameplay systems ---
+    m_noiseSystem = std::make_unique<gameplay::NoiseSystem>();
+    m_visionSystem = std::make_unique<gameplay::VisionSystem>();
+    // Initialize vision system with window dimensions (standard 800x600 for now)
+    m_visionSystem->initialize(800, 600);
 
     // Load resources for interaction hint: try an icon first, fallback to font+text via FontHelper
     bool loadedIcon = false;
@@ -310,6 +319,14 @@ void PlayScene::onEnter() {
     m_debugOverlay->setCollisionManager(m_collisionManager.get());
     
     Logger::instance().info("PlayScene: Debug systems initialized (F1 for console, F3 for overlay)");
+    
+    // ==================== INITIALIZE SURVIVAL HUD ====================
+    m_survivalHUD = std::make_unique<ui::SurvivalHUD>();
+    m_survivalHUD->setPlayer(m_player);
+    // TODO: Set font when AssetManager is available
+    // m_survivalHUD->setAssetManager(assetManager);
+    
+    Logger::instance().info("PlayScene: Survival HUD initialized with vital signs display");
 }
 
 void PlayScene::onExit() {
@@ -345,11 +362,9 @@ void PlayScene::handleEvent(sf::Event& event) {
     if (event.is<sf::Event::KeyPressed>()) {
         if (auto kp = event.getIf<sf::Event::KeyPressed>()) {
             if (kp->code == sf::Keyboard::Key::Escape) {
-                // Toggle pause menu via UIManager
-                if (m_uiManager && m_uiManager->currentMenu() && m_uiManager->currentMenu()->name() == "PauseMenu") {
-                    m_uiManager->popMenu();
-                } else if (m_uiManager) {
-                    m_uiManager->pushMenu(new ui::PauseMenu(m_manager, m_uiManager.get()));
+                // Toggle pause menu directly
+                if (m_pauseMenu) {
+                    m_pauseMenu->toggle();
                 }
             }
         }
@@ -361,13 +376,19 @@ void PlayScene::update(float dt) {
     using input::InputManager;
     using input::Action;
 
+    // Update pause menu
+    if (m_pauseMenu) {
+        m_pauseMenu->update(dt);
+    }
+
+    // Handle pause menu input
+    if (m_pauseMenu && m_pauseMenu->isVisible()) {
+        m_pauseMenu->handleInput(input::InputManager::getInstance());
+        return; // Don't process other inputs when pause menu is active
+    }
+
     // First, let UI manager handle menus and input for them
     if (m_uiManager) m_uiManager->update(dt);
-
-    // If PauseMenu is active, freeze game logic (don't process movement/AI)
-    if (m_uiManager && m_uiManager->isMenuActive("PauseMenu")) {
-        return; // game frozen while paused
-    }
 
     auto& im = InputManager::getInstance();
     m_velocity = {0.f, 0.f};
@@ -439,6 +460,56 @@ void PlayScene::update(float dt) {
     // Update gameplay managers
     if (m_itemManager) m_itemManager->updateAll(dt);
     if (m_puzzleManager) m_puzzleManager->updateAll(dt);
+    
+    // --- NEW: Update advanced gameplay systems ---
+    if (m_noiseSystem && m_player) {
+        // Generate player movement noise using specific methods
+        if (m_player->isRunning()) {
+            m_noiseSystem->generatePlayerRunningNoise(m_player);
+        } else {
+            // Check if player is moving
+            sf::Vector2f oldPos = m_player->position(); // This would need to be stored from previous frame
+            // For now, just generate walking noise if not stationary
+            m_noiseSystem->generatePlayerWalkingNoise(m_player);
+        }
+        
+        // Update noise system (decay old events)
+        m_noiseSystem->update(dt);
+        
+        // Make enemies respond to noise events
+        if (m_enemyManager) {
+            const auto& noiseEvents = m_noiseSystem->getNoiseEvents();
+            for (auto& enemy : m_enemyManager->enemies()) {
+                if (!enemy) continue;
+                
+                // Check each noise event for this enemy
+                for (const auto& noise : noiseEvents) {
+                    sf::Vector2f enemyPos = enemy->position();
+                    sf::Vector2f noisePos = noise.position;
+                    
+                    // Calculate distance to noise
+                    float dx = noisePos.x - enemyPos.x;
+                    float dy = noisePos.y - enemyPos.y;
+                    float distance = std::sqrt(dx * dx + dy * dy);
+                    
+                    // Enemy hearing range (configurable)
+                    float hearingRange = 200.0f;
+                    
+                    // If noise is within hearing range, notify enemy
+                    if (distance <= hearingRange) {
+                        // Intensity decreases with distance
+                        float adjustedIntensity = noise.intensity * (1.0f - (distance / hearingRange));
+                        enemy->onSoundHeard(noisePos, adjustedIntensity);
+                    }
+                }
+            }
+        }
+    }
+    
+    if (m_visionSystem && m_player) {
+        // Update vision system with player reference
+        m_visionSystem->update(dt, m_player);
+    }
 
     // Update auto-save system
     if (m_saveManager && m_player) {
@@ -483,6 +554,11 @@ void PlayScene::update(float dt) {
             sf::Vector2f pos = m_player->position();
             m_debugOverlay->setCustomMetric("Player Pos", "(" + formatFloat(pos.x, 0) + ", " + formatFloat(pos.y, 0) + ")");
         }
+    }
+    
+    // Update survival HUD
+    if (m_survivalHUD && m_player) {
+        m_survivalHUD->update(dt);
     }
 
     // Detect nearby item for explicit interaction (player-only)
@@ -532,9 +608,24 @@ void PlayScene::render(sf::RenderWindow& window) {
     // Render items and puzzles
     if (m_itemManager) m_itemManager->renderAll(window);
     if (m_puzzleManager) m_puzzleManager->renderAll(window);
+    
+    // --- NEW: Render vision system (darkness and vision cone) ---
+    if (m_visionSystem && m_player) {
+        m_visionSystem->render(window, m_player);
+    }
+    
+    // --- NEW: Render noise debug info (for development) ---
+    if (m_noiseSystem && m_noiseSystem->isDebugMode()) {
+        m_noiseSystem->renderDebug(window);
+    }
 
     // Render menus on top
     if (m_uiManager) m_uiManager->render(window);
+    
+    // Render pause menu (above everything else)
+    if (m_pauseMenu) {
+        m_pauseMenu->render(window);
+    }
 
     // Render interaction hint above player if available (sprite preferred)
     if (m_showInteractHint && m_player) {
@@ -557,6 +648,11 @@ void PlayScene::render(sf::RenderWindow& window) {
             circ.setPosition(hintPos + sf::Vector2f(m_player->size().x * 0.5f - 6.f, -6.f));
             window.draw(circ);
         }
+    }
+    
+    // Render survival HUD (UI layer, above game elements)
+    if (m_survivalHUD) {
+        m_survivalHUD->render(window);
     }
     
     // Render debug systems (on top of everything)

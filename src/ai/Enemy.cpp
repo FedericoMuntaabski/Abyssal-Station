@@ -40,6 +40,40 @@ Enemy::Enemy(Id id, const sf::Vector2f& position, const sf::Vector2f& size, floa
     aiAgent_ = std::make_unique<AIAgent>(this, config);
     aiAgent_->setPatrolPoints(patrolPoints);
     useEnhancedAI_ = true;
+    
+    // Initialize advanced AI variables
+    lastKnownPlayerPosition_ = sf::Vector2f(0.f, 0.f);
+    timeSinceLastSighting_ = 0.f;
+    memoryDuration_ = 30.0f;
+    alertLevel_ = 0.0f;
+    isStalkMode_ = false;
+    stalkTimer_ = 0.0f;
+    stalkDistance_ = 100.0f;
+    
+    // Initialize perception capabilities
+    hearingRange_ = 200.0f;
+    vibrationRange_ = 50.0f;
+    lightDetectionRange_ = 150.0f;
+    communicationRange_ = 300.0f;
+    
+    // Initialize attack variations
+    baseDamage_ = 25;
+    criticalChance_ = 0.1f;
+    ambushDamageMultiplier_ = 2.0f;
+    
+    // Initialize movement prediction
+    playerMovementHistory_.reserve(maxHistorySize_);
+    predictionAccuracy_ = 0.7f;
+    
+    // Initialize psychological effects
+    psychologicalDamage_ = 25.0f;
+    intimidationRadius_ = 80.0f;
+    batteryDrainRate_ = 1.0f;
+    
+    // Initialize communication
+    lastCommunicationTime_ = 0.0f;
+    sharedInformation_.reserve(10);
+    hasEscalatedAlert_ = false;
 }
 
 Enemy::~Enemy() = default;
@@ -261,6 +295,51 @@ void Enemy::runLegacyFSM(float deltaTime, const sf::Vector2f* playerPos) {
     if (logTimer_ > 0.f) logTimer_ -= deltaTime;
     // Update attack timer
     if (attackTimer_ > 0.f) attackTimer_ -= deltaTime;
+    
+    // Update advanced AI timers
+    timeSinceLastSighting_ += deltaTime;
+    stalkTimer_ += deltaTime;
+    lastCommunicationTime_ += deltaTime;
+    
+    // Decay alert level over time
+    alertLevel_ = std::max(0.0f, alertLevel_ - deltaTime * 0.1f);
+    
+    // Multi-modal player detection if player reference is available
+    bool playerDetected = false;
+    if (targetPlayer_) {
+        sf::Vector2f playerPos = targetPlayer_->position();
+        
+        // Calculate noise level based on player movement
+        float noiseLevel = 0.0f;
+        if (targetPlayer_->isRunning()) {
+            noiseLevel = 1.0f; // Maximum noise when running
+        } else if (targetPlayer_->isMoving()) {
+            noiseLevel = 0.4f; // Medium noise when walking
+        } else {
+            noiseLevel = 0.1f; // Minimal noise when standing
+        }
+        
+        playerDetected = detectPlayerBySight(playerPos) ||
+                        detectPlayerBySound(playerPos, noiseLevel) ||
+                        detectPlayerByVibration(playerPos) ||
+                        detectPlayerByLight(playerPos, targetPlayer_->isFlashlightOn());
+        
+        if (playerDetected) {
+            rememberPlayerPosition(playerPos);
+            alertLevel_ = std::min(1.0f, alertLevel_ + deltaTime * 0.5f);
+        }
+    } else if (playerPos) {
+        // Fallback to legacy detection
+        playerDetected = detectPlayer(*playerPos);
+        if (playerDetected) {
+            rememberPlayerPosition(*playerPos);
+        }
+    } else {
+        playerDetected = detectPlayer();
+        if (playerDetected && targetPlayer_) {
+            rememberPlayerPosition(targetPlayer_->position());
+        }
+    }
 
     // Basic FSM
     switch (legacyState_) {
@@ -272,7 +351,7 @@ void Enemy::runLegacyFSM(float deltaTime, const sf::Vector2f* playerPos) {
                 break;
             }
             // otherwise remain idle but check for player
-            if (playerPos ? detectPlayer(*playerPos) : detectPlayer()) {
+            if (playerDetected) {
                 Logger::instance().info("[AI] Enemy " + std::to_string(id_) + " detectó al jugador -> CHASE");
                 changeState(AIState::CHASE);
             }
@@ -281,7 +360,7 @@ void Enemy::runLegacyFSM(float deltaTime, const sf::Vector2f* playerPos) {
 
         case AIState::PATROL:
         {
-            if (playerPos ? detectPlayer(*playerPos) : detectPlayer()) {
+            if (playerDetected) {
                 Logger::instance().info("[AI] Enemy " + std::to_string(id_) + " detectó al jugador -> CHASE");
                 changeState(AIState::CHASE);
                 break;
@@ -307,13 +386,40 @@ void Enemy::runLegacyFSM(float deltaTime, const sf::Vector2f* playerPos) {
             }
             // Determine the player position to use for chasing/detection
             sf::Vector2f ppos = playerPos ? *playerPos : (targetPlayer_ ? targetPlayer_->position() : position_);
-            if (! (playerPos ? detectPlayer(ppos) : detectPlayer()) ) {
-                Logger::instance().info("[AI] Enemy " + std::to_string(id_) + " retornando a patrulla..");
-                changeState(AIState::RETURN);
+            
+            if (!playerDetected) {
+                // Lost player, try to predict their movement or investigate
+                if (hasRecentPlayerMemory() && alertLevel_ > 0.5f) {
+                    changeState(AIState::PREDICT_MOVEMENT);
+                } else if (hasRecentPlayerMemory()) {
+                    changeState(AIState::INVESTIGATE_NOISE);
+                } else {
+                    Logger::instance().info("[AI] Enemy " + std::to_string(id_) + " retornando a patrulla..");
+                    changeState(AIState::RETURN);
+                }
                 break;
             }
-            // move to player
-            moveTowards(ppos, deltaTime);
+            
+            // Alert nearby enemies if haven't communicated recently
+            if (lastCommunicationTime_ > 3.0f && alertLevel_ > 0.3f) {
+                changeState(AIState::COMMUNICATE);
+                break;
+            }
+            
+            // Decide between direct chase, stalking, or ambush based on alert level
+            if (alertLevel_ > 0.8f) {
+                // High alert: aggressive chase
+                moveTowards(ppos, deltaTime);
+            } else if (alertLevel_ > 0.4f && stalkTimer_ < 15.0f) {
+                // Medium alert: stalk the player
+                enterStalkMode(ppos);
+                changeState(AIState::STALK);
+                break;
+            } else {
+                // Low alert: normal chase
+                moveTowards(ppos, deltaTime);
+            }
+            
             // check attack range
             sf::Vector2f d = ppos - position_;
             float dist2 = d.x*d.x + d.y*d.y;
@@ -333,16 +439,30 @@ void Enemy::runLegacyFSM(float deltaTime, const sf::Vector2f* playerPos) {
             if (targetPlayer_) {
                 // perform attack if cooldown expired
                 if (attackTimer_ <= 0.f) {
-                    attack(*targetPlayer_);
-                    attackTimer_ = attackCooldown_;
+                    // Choose attack type based on alert level and stalking mode
+                    if (isStalkMode_) {
+                        performPsychologicalAttack(*targetPlayer_);
+                    } else if (alertLevel_ > 0.7f) {
+                        performAmbushAttack(*targetPlayer_);
+                    } else {
+                        performPhysicalAttack(*targetPlayer_);
+                    }
+                    
+                    // Alert nearby enemies if not already done
+                    if (lastCommunicationTime_ > 2.0f) {
+                        alertNearbyEnemies(targetPlayer_->position());
+                    }
                 }
             }
-            if (playerPos ? !detectPlayer(*playerPos) : !detectPlayer()) {
+            if (playerDetected) {
+                // Continue chasing if player still detected
+                changeState(AIState::CHASE);
+            } else if (hasRecentPlayerMemory()) {
+                // Switch to investigation if recently lost player
+                changeState(AIState::INVESTIGATE_NOISE);
+            } else {
                 Logger::instance().info("[AI] Enemy " + std::to_string(id_) + " retornando a patrulla..");
                 changeState(AIState::RETURN);
-            } else {
-                // for now just go back to CHASE to continue closing distance
-                changeState(AIState::CHASE);
             }
         }
         break;
@@ -364,6 +484,183 @@ void Enemy::runLegacyFSM(float deltaTime, const sf::Vector2f* playerPos) {
             sf::Vector2f toDest = dest - position_;
             if ((toDest.x*toDest.x + toDest.y*toDest.y) < 4.0f) {
                 changeState(AIState::PATROL);
+            }
+        }
+        break;
+
+        // Advanced AI states
+        case AIState::INVESTIGATE_NOISE:
+        {
+            if (playerDetected) {
+                changeState(AIState::CHASE);
+                break;
+            }
+            
+            // Move toward last known player position
+            if (hasRecentPlayerMemory()) {
+                moveTowards(lastKnownPlayerPosition_, deltaTime);
+                sf::Vector2f toTarget = lastKnownPlayerPosition_ - position_;
+                if ((toTarget.x*toTarget.x + toTarget.y*toTarget.y) < 16.0f) {
+                    // Reached investigation point, start searching
+                    changeState(AIState::SEARCH_LAST_KNOWN);
+                }
+            } else {
+                changeState(AIState::RETURN);
+            }
+        }
+        break;
+
+        case AIState::STALK:
+        {
+            if (targetPlayer_) {
+                // Maintain distance while following player
+                sf::Vector2f playerPos = targetPlayer_->position();
+                sf::Vector2f toPlayer = playerPos - position_;
+                float distance = std::sqrt(toPlayer.x*toPlayer.x + toPlayer.y*toPlayer.y);
+                
+                if (distance > stalkDistance_ + 20.0f) {
+                    // Too far, move closer
+                    moveTowards(playerPos, deltaTime);
+                } else if (distance < stalkDistance_ - 20.0f) {
+                    // Too close, move away
+                    sf::Vector2f awayFromPlayer = position_ - playerPos;
+                    float len = std::sqrt(awayFromPlayer.x*awayFromPlayer.x + awayFromPlayer.y*awayFromPlayer.y);
+                    if (len > 0.001f) {
+                        awayFromPlayer /= len;
+                        intendedPosition_ = position_ + awayFromPlayer * speed_ * deltaTime;
+                    }
+                }
+                
+                // Perform psychological attacks
+                performPsychologicalAttack(*targetPlayer_);
+                
+                // Occasionally generate ambient noise
+                if (static_cast<int>(stalkTimer_) % 5 == 0 && stalkTimer_ - deltaTime < static_cast<int>(stalkTimer_)) {
+                    generateAmbientNoise();
+                }
+                
+                // Transition to direct attack if player gets too close or after stalking too long
+                if (distance < 50.0f || stalkTimer_ > 30.0f) {
+                    changeState(AIState::ATTACK);
+                }
+            } else {
+                changeState(AIState::RETURN);
+            }
+        }
+        break;
+
+        case AIState::AMBUSH:
+        {
+            if (targetPlayer_) {
+                sf::Vector2f playerPos = targetPlayer_->position();
+                
+                // Calculate player velocity from movement history
+                sf::Vector2f playerVelocity(0.f, 0.f);
+                if (playerMovementHistory_.size() >= 2) {
+                    sf::Vector2f lastPos = playerMovementHistory_.back();
+                    sf::Vector2f secondLastPos = playerMovementHistory_[playerMovementHistory_.size() - 2];
+                    playerVelocity = lastPos - secondLastPos;
+                }
+                
+                sf::Vector2f predictedPos = predictPlayerMovement(playerPos, playerVelocity);
+                
+                // Move to intercept position
+                moveTowards(predictedPos, deltaTime);
+                
+                sf::Vector2f toPlayer = playerPos - position_;
+                float distance = std::sqrt(toPlayer.x*toPlayer.x + toPlayer.y*toPlayer.y);
+                
+                if (distance <= attackRange_) {
+                    performAmbushAttack(*targetPlayer_);
+                    changeState(AIState::CHASE);
+                }
+            } else {
+                changeState(AIState::RETURN);
+            }
+        }
+        break;
+
+        case AIState::COMMUNICATE:
+        {
+            // Alert nearby enemies about player position
+            if (targetPlayer_) {
+                alertNearbyEnemies(targetPlayer_->position());
+            }
+            
+            // Return to previous behavior after communication
+            changeState(AIState::CHASE);
+        }
+        break;
+
+        case AIState::SEARCH_LAST_KNOWN:
+        {
+            if (playerDetected) {
+                changeState(AIState::CHASE);
+                break;
+            }
+            
+            // Search pattern around last known position
+            static float searchTimer = 0.0f;
+            searchTimer += deltaTime;
+            
+            if (searchTimer >= 5.0f) {
+                searchTimer = 0.0f;
+                changeState(AIState::RETURN);
+            }
+            
+            // Simple circular search pattern
+            float searchRadius = 50.0f;
+            float angle = searchTimer * 2.0f; // 2 radians per second
+            sf::Vector2f searchTarget = lastKnownPlayerPosition_ + sf::Vector2f(
+                searchRadius * std::cos(angle),
+                searchRadius * std::sin(angle)
+            );
+            
+            moveTowards(searchTarget, deltaTime);
+        }
+        break;
+
+        case AIState::ESCALATE_ALERT:
+        {
+            // Increase alert level and communicate with nearby enemies
+            escalateAlert();
+            
+            if (targetPlayer_) {
+                alertNearbyEnemies(targetPlayer_->position());
+                changeState(AIState::CHASE);
+            } else {
+                changeState(AIState::INVESTIGATE_NOISE);
+            }
+        }
+        break;
+
+        case AIState::PREDICT_MOVEMENT:
+        {
+            if (targetPlayer_) {
+                sf::Vector2f playerPos = targetPlayer_->position();
+                
+                // Calculate player velocity from movement history
+                sf::Vector2f playerVelocity(0.f, 0.f);
+                if (playerMovementHistory_.size() >= 2) {
+                    sf::Vector2f lastPos = playerMovementHistory_.back();
+                    sf::Vector2f secondLastPos = playerMovementHistory_[playerMovementHistory_.size() - 2];
+                    playerVelocity = lastPos - secondLastPos;
+                }
+                
+                sf::Vector2f predictedPos = predictPlayerMovement(playerPos, playerVelocity);
+                moveTowards(predictedPos, deltaTime);
+                
+                // Switch to direct chase if prediction seems wrong
+                sf::Vector2f actualPos = targetPlayer_->position();
+                sf::Vector2f toPredicted = predictedPos - position_;
+                sf::Vector2f toActual = actualPos - position_;
+                
+                if (std::sqrt(toPredicted.x*toPredicted.x + toPredicted.y*toPredicted.y) >
+                    std::sqrt(toActual.x*toActual.x + toActual.y*toActual.y)) {
+                    changeState(AIState::CHASE);
+                }
+            } else {
+                changeState(AIState::RETURN);
             }
         }
         break;
@@ -428,6 +725,215 @@ void Enemy::performMovementPlanning(float deltaTime, collisions::CollisionManage
     
     // Legacy movement planning
     // This is handled within the FSM moveTowards calls
+}
+
+// =================================================================
+// ADVANCED AI METHODS IMPLEMENTATION
+// =================================================================
+
+// Multi-modal perception methods
+bool Enemy::detectPlayerBySight(const sf::Vector2f& playerPosition) const {
+    sf::Vector2f enemyPos = position_;
+    float distance = std::sqrt(std::pow(playerPosition.x - enemyPos.x, 2) + std::pow(playerPosition.y - enemyPos.y, 2));
+    
+    // Check if player is within sight range
+    if (distance > visionRange_) return false;
+    
+    // Simple line-of-sight check (could be enhanced with actual obstacle detection)
+    // For now, assume clear line of sight within range
+    return true;
+}
+
+bool Enemy::detectPlayerBySound(const sf::Vector2f& playerPos, float noiseLevel) const {
+    sf::Vector2f enemyPos = position_;
+    float distance = std::sqrt(std::pow(playerPos.x - enemyPos.x, 2) + std::pow(playerPos.y - enemyPos.y, 2));
+    
+    // Check if player is within hearing range
+    if (distance > hearingRange_) return false;
+    
+    // Detect based on noise level threshold
+    float detectionThreshold = 0.3f; // 30% noise threshold
+    
+    return noiseLevel > detectionThreshold;
+}
+
+bool Enemy::detectPlayerByVibration(const sf::Vector2f& playerPos) const {
+    sf::Vector2f enemyPos = position_;
+    float distance = std::sqrt(std::pow(playerPos.x - enemyPos.x, 2) + std::pow(playerPos.y - enemyPos.y, 2));
+    
+    // Vibration detection for very close proximity
+    return distance <= vibrationRange_;
+}
+
+bool Enemy::detectPlayerByLight(const sf::Vector2f& playerPos, bool flashlightOn) const {
+    sf::Vector2f enemyPos = position_;
+    float distance = std::sqrt(std::pow(playerPos.x - enemyPos.x, 2) + std::pow(playerPos.y - enemyPos.y, 2));
+    
+    // Check if player is within light detection range and has flashlight on
+    return distance <= lightDetectionRange_ && flashlightOn;
+}
+
+// Memory and tracking methods
+void Enemy::rememberPlayerPosition(const sf::Vector2f& position) {
+    lastKnownPlayerPosition_ = position;
+    timeSinceLastSighting_ = 0.f;
+    
+    // Update player movement history for prediction
+    updatePlayerMovementHistory(position);
+}
+
+// Psychological warfare methods
+void Enemy::enterStalkMode(const sf::Vector2f& playerPosition) {
+    isStalkMode_ = true;
+    stalkTimer_ = 0.f;
+    lastKnownPlayerPosition_ = playerPosition;
+    
+    if (aiAgent_) {
+        aiAgent_->changeState(AIState::STALK);
+    }
+}
+
+void Enemy::performPsychologicalAttack() {
+    if (!isStalkMode_) return;
+    
+    // This version without player parameter - placeholder for ambient effects
+    generateAmbientNoise();
+    
+    Logger::instance().info("[AI] Enemy " + std::to_string(id_) + " performing ambient psychological attack");
+}
+
+void Enemy::performPsychologicalAttack(entities::Player& player) {
+    if (!isStalkMode_) return;
+    
+    sf::Vector2f playerPos = player.position();
+    sf::Vector2f enemyPos = position_;
+    float distance = std::sqrt(std::pow(playerPos.x - enemyPos.x, 2) + std::pow(playerPos.y - enemyPos.y, 2));
+    
+    // Psychological effect when within intimidation radius
+    if (distance <= intimidationRadius_) {
+        // Drain player's battery
+        player.drainBattery(batteryDrainRate_);
+        
+        // Apply psychological fatigue
+        player.drainFatigue(psychologicalDamage_);
+        
+        Logger::instance().info("[AI] Enemy " + std::to_string(id_) + " performing psychological attack on player");
+    }
+}
+
+void Enemy::generateAmbientNoise() {
+    // Implementation would trigger audio system to play creepy sounds
+    // This is a placeholder for ambient sound generation
+    Logger::instance().info("[AI] Enemy " + std::to_string(id_) + " generating ambient noise for psychological effect");
+}
+
+// Attack variation methods
+void Enemy::performPhysicalAttack(entities::Player& player) {
+    if (attackTimer_ > 0.f) return;
+    
+    int damage = calculateAttackDamage();
+    
+    // Check for critical hit
+    if (static_cast<float>(rand()) / RAND_MAX < criticalChance_) {
+        damage = static_cast<int>(damage * 1.5f);
+        Logger::instance().info("[AI] Enemy " + std::to_string(id_) + " landed a critical hit!");
+    }
+    
+    player.applyDamage(damage);
+    attackTimer_ = attackCooldown_;
+    
+    Logger::instance().info("[AI] Enemy " + std::to_string(id_) + " attacked player for " + std::to_string(damage) + " damage");
+}
+
+void Enemy::performAmbushAttack(entities::Player& player) {
+    if (attackTimer_ > 0.f) return;
+    
+    int damage = static_cast<int>(calculateAttackDamage() * ambushDamageMultiplier_);
+    
+    player.applyDamage(damage);
+    attackTimer_ = attackCooldown_;
+    
+    Logger::instance().info("[AI] Enemy " + std::to_string(id_) + " ambushed player for " + std::to_string(damage) + " damage");
+}
+
+int Enemy::calculateAttackDamage() const {
+    return baseDamage_;
+}
+
+// Communication methods
+void Enemy::alertNearbyEnemies(const sf::Vector2f& playerPosition) {
+    // This would need access to EnemyManager or similar to find nearby enemies
+    // For now, we'll log the alert
+    Logger::instance().info("[AI] Enemy " + std::to_string(id_) + " alerting nearby enemies about player at position (" + 
+                           std::to_string(playerPosition.x) + ", " + std::to_string(playerPosition.y) + ")");
+    
+    lastCommunicationTime_ = 0.f; // Reset communication timer
+}
+
+void Enemy::escalateAlert() {
+    if (hasEscalatedAlert_) return;
+    
+    alertLevel_ = std::min(alertLevel_ + 0.3f, 1.0f);
+    hasEscalatedAlert_ = true;
+    
+    if (aiAgent_) {
+        aiAgent_->changeState(AIState::ESCALATE_ALERT);
+    }
+    
+    Logger::instance().info("[AI] Enemy " + std::to_string(id_) + " escalating alert level to " + std::to_string(alertLevel_));
+}
+
+bool Enemy::isInCommunicationRange(const Enemy& otherEnemy) const {
+    sf::Vector2f otherPos = otherEnemy.position();
+    sf::Vector2f myPos = position_;
+    float distance = std::sqrt(std::pow(otherPos.x - myPos.x, 2) + std::pow(otherPos.y - myPos.y, 2));
+    
+    return distance <= communicationRange_;
+}
+
+// Movement prediction methods
+void Enemy::updatePlayerMovementHistory(const sf::Vector2f& playerPos) {
+    playerMovementHistory_.push_back(playerPos);
+    
+    // Keep only the last maxHistorySize_ positions
+    if (playerMovementHistory_.size() > maxHistorySize_) {
+        playerMovementHistory_.erase(playerMovementHistory_.begin());
+    }
+}
+
+sf::Vector2f Enemy::predictPlayerMovement(const sf::Vector2f& playerPos, const sf::Vector2f& playerVelocity) const {
+    // Simple linear prediction based on velocity
+    float predictionTime = 1.5f; // Predict 1.5 seconds ahead
+    sf::Vector2f predictedPos = playerPos + playerVelocity * predictionTime;
+    
+    // Add some randomness based on prediction accuracy
+    float randomFactor = 1.0f - predictionAccuracy_;
+    float offsetX = (static_cast<float>(rand()) / RAND_MAX - 0.5f) * 50.0f * randomFactor;
+    float offsetY = (static_cast<float>(rand()) / RAND_MAX - 0.5f) * 50.0f * randomFactor;
+    
+    return sf::Vector2f(predictedPos.x + offsetX, predictedPos.y + offsetY);
+}
+
+sf::Vector2f Enemy::getOptimalInterceptPosition(const sf::Vector2f& playerPos, const sf::Vector2f& playerVelocity) const {
+    // Calculate interception point based on enemy and player speeds
+    sf::Vector2f enemyPos = position_;
+    float enemySpeed = speed_;
+    float playerSpeed = std::sqrt(playerVelocity.x * playerVelocity.x + playerVelocity.y * playerVelocity.y);
+    
+    if (playerSpeed == 0.f) {
+        return playerPos; // Player is stationary
+    }
+    
+    // Time to intercept calculation
+    sf::Vector2f toPlayer = playerPos - enemyPos;
+    float distance = std::sqrt(toPlayer.x * toPlayer.x + toPlayer.y * toPlayer.y);
+    
+    float timeToIntercept = distance / (enemySpeed + playerSpeed);
+    
+    // Calculate intercept position
+    sf::Vector2f interceptPos = playerPos + playerVelocity * timeToIntercept;
+    
+    return interceptPos;
 }
 
 } // namespace ai

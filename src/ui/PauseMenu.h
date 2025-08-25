@@ -1,8 +1,7 @@
 #ifndef ABYSSAL_STATION_SRC_UI_PAUSEMENU_H
 #define ABYSSAL_STATION_SRC_UI_PAUSEMENU_H
 
-#include "Menu.h"
-#include "InputHelper.h"
+#include <SFML/Graphics.hpp>
 #include <SFML/Audio/Sound.hpp>
 #include <SFML/Audio/SoundBuffer.hpp>
 #include <vector>
@@ -10,57 +9,66 @@
 #include <memory>
 
 namespace scene { class SceneManager; }
-namespace ui { class UIManager; }
+namespace input { class InputManager; }
 
 namespace ui {
 
-class PauseMenu : public Menu {
+class PauseMenu {
 public:
-    explicit PauseMenu(scene::SceneManager* manager, ui::UIManager* uiManager = nullptr);
-    ~PauseMenu() override = default;
+    explicit PauseMenu(scene::SceneManager* manager);
+    ~PauseMenu() = default;
 
-    // Menu interface
-    void handleInput() override;
-    void update(float dt) override;
-    void render(sf::RenderWindow& window) override;
+    // Core functionality
+    void handleInput(input::InputManager& inputManager);
+    void update(float deltaTime);
+    void render(sf::RenderWindow& window);
 
-    void onEnter() override;
-    void onExit() override;
-
-    // Should be called by the owner each frame to allow opening the pause
-    // menu when the Pause action (e.g., Escape) is pressed.
-    void processToggleInput();
+    // Menu state
+    void show();
+    void hide();
+    void toggle();
+    bool isVisible() const { return visible_; }
 
 private:
-    scene::SceneManager* m_manager{nullptr};
-    ui::UIManager* m_uiManager{nullptr};
-    std::vector<std::string> m_options;
-    std::size_t m_selected{0};
-    float m_startY{120.f};
-    float m_spacing{36.f};
+    enum class Option {
+        Resume = 0,
+        MainMenu = 1,
+        OptionCount = 2
+    };
+
+    static constexpr float INPUT_DELAY = 0.2f;
+
+    // Core components
+    scene::SceneManager* sceneManager_;
     
-    // Visual animation state
-    std::vector<float> m_scales;
-    std::vector<float> m_glowIntensity;
+    // Menu state
+    bool visible_;
+    int selectedOption_;
     
-    // Device detection and input helper
-    std::unique_ptr<InputHelper> m_inputHelper;
-    InputHelper::DeviceType m_activeDevice{InputHelper::DeviceType::Keyboard};
+    // Audio
+    bool audioLoaded_;
+    std::shared_ptr<sf::SoundBuffer> hoverBuffer_;
+    std::shared_ptr<sf::SoundBuffer> confirmBuffer_;
+    std::unique_ptr<sf::Sound> hoverSound_;
+    std::unique_ptr<sf::Sound> confirmSound_;
     
-    // Audio members
-    std::unique_ptr<sf::Sound> m_hoverSound;
-    std::unique_ptr<sf::Sound> m_confirmSound;
-    std::shared_ptr<sf::SoundBuffer> m_hoverBuffer;
-    std::shared_ptr<sf::SoundBuffer> m_confirmBuffer;
-    bool m_audioLoaded{false};
+    // Input handling
+    float inputCooldown_;
     
-    // Helper methods
-    void updateActiveDevice();
-    void handleMouseHover(sf::RenderWindow& window);
-    std::string getContextualHint() const;
+    // Menu elements
+    sf::RectangleShape overlay_;
+    sf::RectangleShape menuBackground_;
+    sf::Font font_;
+    std::vector<std::unique_ptr<sf::Text>> menuTexts_;
+
+    // Private methods
+    void initializeMenu();
     void loadAudio();
+    void updateMenuSelection();
+    void executeSelectedOption();
     void playHoverSound();
     void playConfirmSound();
+    std::string getOptionText(Option option) const;
 };
 
 } // namespace ui

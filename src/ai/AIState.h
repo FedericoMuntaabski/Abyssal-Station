@@ -5,16 +5,24 @@ namespace ai {
 
 // Enhanced AI states with additional behaviors
 enum class AIState {
-    IDLE,       // Standing still, minimal processing
-    PATROL,     // Moving between patrol points
-    CHASE,      // Actively pursuing a target
-    ATTACK,     // In combat range, performing attacks
-    FLEE,       // Running away from danger
-    RETURN,     // Returning to patrol after losing target
-    INVESTIGATE,// Moving to investigate a sound/disturbance
-    ALERT,      // High awareness, scanning for threats
-    STUNNED,    // Temporarily incapacitated
-    DEAD        // No longer active
+    IDLE,           // Standing still, minimal processing
+    PATROL,         // Moving between patrol points
+    CHASE,          // Actively pursuing a target
+    ATTACK,         // In combat range, performing attacks
+    FLEE,           // Running away from danger
+    RETURN,         // Returning to patrol after losing target
+    INVESTIGATE,    // Moving to investigate a sound/disturbance
+    ALERT,          // High awareness, scanning for threats
+    STUNNED,        // Temporarily incapacitated
+    DEAD,           // No longer active
+    // NEW: Advanced behavioral states from roadmap
+    INVESTIGATE_NOISE,  // Investigating specific noise events
+    PREDICT_MOVEMENT,   // Predicting and intercepting player movement
+    STALK,             // Following at distance for psychological effect
+    AMBUSH,            // Waiting in hiding for surprise attack
+    COMMUNICATE,       // Sharing information with other enemies
+    SEARCH_LAST_KNOWN, // Checking last known player position
+    ESCALATE_ALERT     // Activating more enemies in response to player
 };
 
 // Behavior profiles that modify AI decision making
@@ -24,7 +32,12 @@ enum class BehaviorProfile {
     NEUTRAL,     // Balanced behavior
     PASSIVE,     // Rarely attacks, prefers flee
     GUARD,       // Stays near patrol area, defensive
-    SCOUT        // High vision range, alerts others
+    SCOUT,       // High vision range, alerts others
+    // NEW: Psychological and advanced profiles
+    STALKER,     // Follows at distance, psychological warfare
+    AMBUSHER,    // Waits for optimal attack opportunities
+    COMMUNICATOR,// Coordinates with other enemies
+    PERSISTENT   // Never gives up searching for player
 };
 
 // Perception types for multi-modal sensing
@@ -32,7 +45,12 @@ enum class PerceptionType {
     SIGHT,      // Line of sight detection
     HEARING,    // Sound-based detection
     PROXIMITY,  // Close-range detection (touch/smell)
-    MEMORY      // Remembering last known position
+    MEMORY,     // Remembering last known position
+    // NEW: Advanced sensory types
+    VIBRATION,  // Detecting footsteps and movement
+    LIGHT,      // Detecting flashlight and other light sources
+    PREDICTION, // Predicting player movement patterns
+    COMMUNICATION // Information shared by other enemies
 };
 
 // Priority levels for behavior decision making

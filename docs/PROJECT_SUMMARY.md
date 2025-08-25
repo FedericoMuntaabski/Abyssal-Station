@@ -121,6 +121,59 @@ saves/
 - Debug systems have minimal performance impact when enabled
 
 ### Future Enhancements
+
+#### 🎯 PRIORITY: Advanced Survival/Horror System (Q1 2025)
+**Comprehensive Player & Enemy improvements for immersive survival experience:**
+
+**📋 IMPLEMENTATION PLAN COMPLETE** - Detailed 5-phase roadmap ready for execution
+
+**Phase Structure (10 Sprints - 20 weeks)**:
+1. **Phase 1** (Sprint 1-2): Player vital signs + survival HUD base
+2. **Phase 2** (Sprint 3-4): Restricted inventory system + visual UI  
+3. **Phase 3** (Sprint 5-6): Limited vision + advanced stealth mechanics
+4. **Phase 4** (Sprint 7-8): Dynamic noise system + improvised combat
+5. **Phase 5** (Sprint 9-10): Advanced enemy AI + persistent injuries + polish
+
+**Player Systems:**
+- **Vital States**: Health, Battery (rechargeable), Fatigue, Weight management
+- **Limited Stamina**: Energy consumption for running/attacking, affected by weight
+- **Restricted Inventory**: 4 main slots, weight-based capacity (20kg max)
+- **Limited Vision**: Cone-based field of view, flashlight with battery consumption
+- **Advanced Stealth**: Crouching, slow walking, light management
+- **Dynamic Noise**: Action-based sound generation affecting enemy detection
+- **Improvised Combat**: Limited weapons with durability, scarce ammunition
+- **Persistent Injuries**: Permanent penalties from severe damage (>65% health loss)
+
+**Enemy AI Enhancements:**
+- **Reactive Intelligence**: Dynamic patrol routes, noise investigation, player prediction
+- **Multi-modal Detection**: Vision, hearing, vibration sensing with memory
+- **Psychological Warfare**: Physical + psychological attacks, intimidation effects
+- **Intelligent Persistence**: Extended searching, location memory, inter-enemy communication
+- **Stalking Mode**: Silent following for psychological tension before surprise attacks
+- **Risk/Reward Balance**: Valuable loot from dangerous encounters
+
+**UX/UI Specifications:**
+- **Survival HUD**: Industrial aesthetic with non-intrusive vital signs display
+- **Distributed Layout**: Vital bars (bottom-left), hotbar (bottom-right), notifications (top-right)
+- **Dynamic Elements**: Stamina bar (center-bottom, contextual), stealth indicators, injury warnings
+- **Thematic Palette**: Blue/green base tones, red/amber for critical alerts
+
+**Technical Integration:**
+- **PlayScene Integration**: New systems fully integrated with existing managers
+- **Architecture Preservation**: Extends current Entity/Component system without modification
+- **Performance Optimized**: Maximum 5ms additional frame time, 50MB RAM increase
+- **Complete Persistence**: Full save/load support for all survival systems
+
+**Implementation Ready**: Detailed plan with concrete deliverables, integration points, and success criteria defined
+
+**Technical Requirements:**
+- SFML 3.0.1 compatibility maintained
+- Maximum 5ms performance impact per frame
+- 50MB maximum additional RAM usage
+- Full save/load support for all new systems
+- Configurable parameters in JSON
+
+#### 🔧 Technical Improvements
 - Complete debug console command implementations
 - Performance profiler with JSON reports
 - Enhanced audio system with dynamic tracks
@@ -129,4 +182,4 @@ saves/
 
 ---
 *Last Updated: 2025-08-25*  
-*Status: Production Ready with Enhanced Features* ✅
+*Status: Production Ready with Major Survival Enhancements Planned* ✅
