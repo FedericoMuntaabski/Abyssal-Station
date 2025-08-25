@@ -72,13 +72,6 @@ void ItemManager::updateAll(float deltaTime)
                         auto elapsed = std::chrono::steady_clock::now() - gameStartTime_;
                         auto seconds = std::chrono::duration_cast<std::chrono::seconds>(elapsed).count();
                         stats_.averageCollectionTime = static_cast<float>(seconds) / stats_.totalItemsCollected;
-                        
-                        // Update achievement progress
-                        if (achievementManager_) {
-                            achievementManager_->updateProgress("collector", 1);
-                            achievementManager_->updateProgress("item_hoarder", 1);  
-                            achievementManager_->updateProgress("treasure_hunter", 1);
-                        }
                     }
                         // If bound to a puzzle step, mark the step completed
                         if (puzzleManager_ && !wasCollected && item->isCollected()) {
@@ -120,11 +113,6 @@ void ItemManager::setUIManager(ui::UIManager* uiManager)
 void ItemManager::setPuzzleManager(PuzzleManager* pm)
 {
     puzzleManager_ = pm;
-}
-
-void ItemManager::setAchievementManager(AchievementManager* am)
-{
-    achievementManager_ = am;
 }
 
 void ItemManager::bindItemToPuzzleStep(entities::Entity::Id itemId, entities::Entity::Id puzzleId, std::size_t stepIndex)

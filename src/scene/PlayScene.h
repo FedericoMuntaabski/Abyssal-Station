@@ -6,8 +6,9 @@
 #include "../ai/EnemyManager.h"
 #include "../gameplay/ItemManager.h"
 #include "../gameplay/PuzzleManager.h"
-#include "../gameplay/AchievementManager.h"
 #include "../core/SaveManager.h"
+#include "../debug/DebugConsole.h"
+#include "../debug/DebugOverlay.h"
 
 namespace scene { class SceneManager; }
 namespace ui { class UIManager; }
@@ -46,10 +47,13 @@ private:
     // Gameplay managers
     std::unique_ptr<gameplay::ItemManager> m_itemManager;
     std::unique_ptr<gameplay::PuzzleManager> m_puzzleManager;
-    std::unique_ptr<gameplay::AchievementManager> m_achievementManager;
     
     // Auto-save system
     std::unique_ptr<core::SaveManager> m_saveManager;
+    
+    // Debug systems
+    std::unique_ptr<debug::DebugConsole> m_debugConsole;
+    std::unique_ptr<debug::DebugOverlay> m_debugOverlay;
     
     // Achievement tracking
     float m_survivalTime{0.0f};
@@ -63,6 +67,9 @@ private:
     std::unique_ptr<sf::Sprite> m_hintSprite;
     float m_hintPulseTimer{0.f};
     std::unique_ptr<sf::Text> m_hintText; // kept as fallback if icon missing
+    
+    // Helper methods
+    std::string formatFloat(float value, int precision) const;
 };
 
 } // namespace scene

@@ -25,6 +25,9 @@ PauseMenu::PauseMenu(scene::SceneManager* manager, ui::UIManager* uiManager)
     m_scales.assign(m_options.size(), 1.0f);
     m_glowIntensity.assign(m_options.size(), 0.0f);
     loadAudio();
+    
+    // Activate menu immediately
+    activate();
 }
 
 void PauseMenu::onEnter() {
@@ -78,7 +81,6 @@ std::string PauseMenu::getContextualHint() const {
 }
 
 void PauseMenu::handleInput() {
-    core::Logger::instance().info("PauseMenu: handleInput() called");
 
     updateActiveDevice();
     auto& im = InputManager::getInstance();
@@ -125,7 +127,7 @@ void PauseMenu::handleInput() {
                 m_uiManager->triggerLoadGame();
                 m_uiManager->showToast("Game loaded (placeholder)", 2.0f, sf::Color::Cyan);
             }
-        } else if (choice == "Volver al menu principal") {
+        } else if (choice == "Volver al menú principal") {
             // Go back to main menu instead of quitting
             if (m_uiManager) {
                 m_uiManager->triggerReturnToMainMenu();
@@ -161,21 +163,39 @@ void PauseMenu::update(float dt) {
 }
 
 void PauseMenu::render(sf::RenderWindow& window) {
+    // Handle mouse hover first
+    handleMouseHover(window);
+    
     static sf::Font font;
     static bool fontLoaded = false;
     if (!fontLoaded) {
         fontLoaded = font.openFromFile("assets/fonts/Secundary_font.ttf");
     }
 
-    handleMouseHover(window);
-
-    // Render contextual hints similar to MainMenu
     if (!fontLoaded) return;
 
+    sf::Vector2f windowSize = static_cast<sf::Vector2f>(window.getSize());
+    
+    // Draw semi-transparent background
+    sf::RectangleShape overlay;
+    overlay.setSize(windowSize);
+    overlay.setFillColor(sf::Color(0, 0, 0, 180));
+    window.draw(overlay);
+    
+    // Draw pause menu title
+    sf::Text titleText(font, "PAUSA", 32);
+    titleText.setFillColor(sf::Color::White);
+    sf::FloatRect titleBounds = titleText.getLocalBounds();
+    titleText.setPosition(sf::Vector2f(
+        (windowSize.x - titleBounds.size.x) / 2.0f,
+        50.0f
+    ));
+    window.draw(titleText);
+
+    // Render contextual hints similar to MainMenu
     std::string hint = getContextualHint();
     sf::Text hintText(font, hint, 14);
     hintText.setFillColor(sf::Color(150, 150, 150));
-    sf::Vector2f windowSize = static_cast<sf::Vector2f>(window.getSize());
     hintText.setPosition(sf::Vector2f(120.f, windowSize.y - 80.f));
     window.draw(hintText);
 

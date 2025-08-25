@@ -19,14 +19,26 @@ using input::InputManager;
 OptionsMenu::OptionsMenu(scene::SceneManager* manager, core::ConfigManager* configManager)
     : Menu("OptionsMenu"), m_manager(manager), m_configManager(configManager) {
     
+    // Initialize default values first
+    m_musicVolume = 50;
+    m_uiVolume = 50;
+    m_fullscreen = false;
+    m_resolutionWidth = 1280;
+    m_resolutionHeight = 720;
+    m_selectedResolution = 1; // Default to 1280x720
+    
     m_inputHelper = std::make_unique<InputHelper>();
     initializeOptions();
     initializeResolutions();
     
     m_scales.assign(m_mainOptions.size(), 1.0f);
     
-    // Load settings from config
-    loadSettings();
+    // Load settings from config if available
+    if (m_configManager) {
+        loadSettings();
+    } else {
+        core::Logger::instance().warning("OptionsMenu: ConfigManager is null, using default values");
+    }
     
     // Load audio assets
     loadAudio();
@@ -308,44 +320,23 @@ std::string OptionsMenu::getContextualHint() const {
 
 void OptionsMenu::loadSettings() {
     if (m_configManager) {
-        try {
-            m_musicVolume = m_configManager->musicVolume();
-            m_uiVolume = m_configManager->uiVolume();
-            m_fullscreen = m_configManager->fullscreen();
-            core::Logger::instance().info("OptionsMenu: Settings loaded successfully");
-        } catch (const std::exception& e) {
-            core::Logger::instance().error("OptionsMenu: Error loading settings - " + std::string(e.what()));
-            // Set default values on error
-            m_musicVolume = 50;
-            m_uiVolume = 50;
-            m_fullscreen = false;
-        }
-    } else {
-        core::Logger::instance().warning("OptionsMenu: ConfigManager is null, using default settings");
-        // Set default values
-        m_musicVolume = 50;
-        m_uiVolume = 50;
-        m_fullscreen = false;
+        m_musicVolume = m_configManager->musicVolume();
+        m_uiVolume = m_configManager->uiVolume();
+        m_fullscreen = m_configManager->fullscreen();
+        // Resolution will be set by initializeResolutions
     }
 }
 
 void OptionsMenu::saveSettings() {
     if (m_configManager) {
-        try {
-            m_configManager->setMusicVolume(m_musicVolume);
-            m_configManager->setUiVolume(m_uiVolume);
-            m_configManager->setFullscreen(m_fullscreen);
-            
-            auto res = m_availableResolutions[m_selectedResolution];
-            m_configManager->setResolution(res.first, res.second);
-            
-            m_configManager->saveConfig();
-            core::Logger::instance().info("OptionsMenu: Settings saved successfully");
-        } catch (const std::exception& e) {
-            core::Logger::instance().error("OptionsMenu: Error saving settings - " + std::string(e.what()));
-        }
-    } else {
-        core::Logger::instance().warning("OptionsMenu: ConfigManager is null, cannot save settings");
+        m_configManager->setMusicVolume(m_musicVolume);
+        m_configManager->setUiVolume(m_uiVolume);
+        m_configManager->setFullscreen(m_fullscreen);
+        
+        auto res = m_availableResolutions[m_selectedResolution];
+        m_configManager->setResolution(res.first, res.second);
+        
+        m_configManager->saveConfig();
     }
 }
 

@@ -96,18 +96,19 @@ add_executable(AbyssalStation
     src/collisions/SpatialPartition.h
     src/collisions/CollisionDebug.cpp
     src/collisions/CollisionDebug.h
+    # Debug module
+    src/debug/DebugConsole.cpp
+    src/debug/DebugConsole.h
+    src/debug/DebugOverlay.cpp
+    src/debug/DebugOverlay.h
     # Gameplay: items & puzzles
     src/gameplay/Item.cpp
     src/gameplay/ItemManager.cpp
     src/gameplay/Puzzle.cpp
     src/gameplay/PuzzleManager.cpp
-    src/gameplay/AchievementManager.cpp
     src/core/SaveManager.cpp
     # Debug scene for pickup test
     src/scene/DebugPickupScene.cpp
-    # Audio module
-    src/audio/AudioManager.cpp
-    src/audio/AudioManager.h
     # UI module
     src/ui/Menu.cpp
     src/ui/MainMenu.cpp

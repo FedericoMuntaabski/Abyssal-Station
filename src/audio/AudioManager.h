@@ -1,104 +1,53 @@
-#ifndef ABYSSAL_STATION_SRC_AUDIO_AUDIO_MANAGER_H
-#define ABYSSAL_STATION_SRC_AUDIO_AUDIO_MANAGER_H
+#ifndef ABYSSAL_STATION_SRC_AUDIO_AUDIOMANAGER_H
+#define ABYSSAL_STATION_SRC_AUDIO_AUDIOMANAGER_H
 
 #include <SFML/Audio.hpp>
-#include <unordered_map>
 #include <string>
+#include <unordered_map>
 #include <memory>
 
 namespace audio {
-
-enum class AudioContext {
-    Menu,
-    Gameplay,
-    Combat,
-    Exploration,
-    Danger
-};
 
 class AudioManager {
 public:
     AudioManager();
     ~AudioManager() = default;
 
-    // Audio loading
-    bool loadMusic(const std::string& id, const std::string& filepath);
-    bool loadSound(const std::string& id, const std::string& filepath);
-    
-    // Music control with smooth transitions
-    void playMusic(const std::string& id, bool loop = true);
+    // Music management
+    void playMusic(const std::string& musicName, bool loop = true);
     void stopMusic();
-    void pauseMusic();
-    void resumeMusic();
+    void setMusicVolume(float volume); // 0-100
     
-    // Sound effects
-    void playSound(const std::string& id, float volume = 100.0f);
+    // Sound effects management
+    void playSound(const std::string& soundName);
+    void setSoundVolume(float volume); // 0-100
     
-    // Context-based audio switching
-    void setAudioContext(AudioContext context);
-    AudioContext getCurrentContext() const { return m_currentContext; }
-    
-    // Volume control
+    // Global audio control
     void setMasterVolume(float volume); // 0-100
-    void setMusicVolume(float volume);  // 0-100
-    void setSoundVolume(float volume);  // 0-100
+    void muteAll(bool muted);
     
-    // Fade effects
-    void fadeOutMusic(float duration = 2.0f);
-    void fadeInMusic(const std::string& id, float duration = 2.0f, bool loop = true);
-    void crossfadeMusic(const std::string& newId, float duration = 3.0f, bool loop = true);
-    
-    // Update for fade effects
+    // Update (for fade effects, etc.)
     void update(float deltaTime);
-    
-    // Get current playing music ID
-    std::string getCurrentMusicId() const { return m_currentMusicId; }
-    
+
 private:
-    struct MusicTrack {
-        std::unique_ptr<sf::Music> music;
-        std::string filepath;
-        float baseVolume{100.0f};
-    };
+    // Music system
+    sf::Music m_currentMusic;
+    float m_musicVolume{50.0f};
     
-    struct SoundEffect {
-        sf::SoundBuffer buffer;
-        float baseVolume{100.0f};
-    };
-    
-    struct FadeOperation {
-        enum Type { FadeOut, FadeIn, CrossFade };
-        Type type;
-        float duration;
-        float elapsed;
-        std::string targetMusicId;
-        bool targetLoop;
-        float startVolume;
-        float targetVolume;
-    };
-    
-    std::unordered_map<std::string, MusicTrack> m_musicTracks;
-    std::unordered_map<std::string, SoundEffect> m_soundEffects;
+    // Sound system
+    std::unordered_map<std::string, std::shared_ptr<sf::SoundBuffer>> m_soundBuffers;
     std::vector<std::unique_ptr<sf::Sound>> m_activeSounds;
+    float m_soundVolume{50.0f};
     
-    AudioContext m_currentContext{AudioContext::Menu};
-    std::string m_currentMusicId;
-    
+    // Global settings
     float m_masterVolume{100.0f};
-    float m_musicVolume{100.0f};
-    float m_soundVolume{100.0f};
+    bool m_muted{false};
     
-    std::unique_ptr<FadeOperation> m_currentFade;
-    
-    // Context-specific music mapping
-    std::unordered_map<AudioContext, std::string> m_contextMusic;
-    
-    void setupContextMapping();
+    // Helper methods
     void cleanupFinishedSounds();
-    void updateFade(float deltaTime);
-    float calculateEffectiveVolume(float baseVolume, bool isMusic) const;
+    float getEffectiveVolume(float baseVolume) const;
 };
 
 } // namespace audio
 
-#endif // ABYSSAL_STATION_SRC_AUDIO_AUDIO_MANAGER_H
+#endif // ABYSSAL_STATION_SRC_AUDIO_AUDIOMANAGER_H

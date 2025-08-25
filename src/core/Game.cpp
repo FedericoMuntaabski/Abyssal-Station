@@ -4,6 +4,7 @@
 #include "../scene/SceneManager.h"
 #include "../scene/MenuScene.h"
 #include "../input/InputManager.h"
+#include "../audio/AudioManager.h"
 #include <filesystem>
 #include <iostream>
 

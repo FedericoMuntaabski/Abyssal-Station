@@ -11,7 +11,6 @@
 
 namespace collisions { class CollisionManager; }
 namespace ui { class UIManager; }
-namespace gameplay { class AchievementManager; }
 
 namespace gameplay {
 
@@ -35,7 +34,6 @@ public:
     void setCollisionManager(collisions::CollisionManager* cm);
     void setUIManager(ui::UIManager* uiManager);
     void setPuzzleManager(class PuzzleManager* pm);
-    void setAchievementManager(class AchievementManager* am);
 
     // Bind an item id to a puzzle id and step index so picking the item completes that step
     void bindItemToPuzzleStep(entities::Entity::Id itemId, entities::Entity::Id puzzleId, std::size_t stepIndex);
@@ -67,7 +65,6 @@ private:
     std::vector<std::unique_ptr<Item>> items_;
     ui::UIManager* uiManager_{nullptr};
     class PuzzleManager* puzzleManager_{nullptr};
-    class AchievementManager* achievementManager_{nullptr};
     std::unordered_map<entities::Entity::Id, std::pair<entities::Entity::Id, std::size_t>> itemToPuzzleMap_;
     Statistics stats_;
     std::chrono::steady_clock::time_point gameStartTime_;
